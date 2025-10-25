@@ -128,7 +128,7 @@
         // --- Main App Logic (from app.js) ---
         
         // --- DOM Elements ---
-        let mobileMenuButton, mobileMenu, loginBtn, mobileLoginBtn, logoutBtn, userProfile,
+        let mobileMenuButton, mobileMenu, mobileLoginBtn, logoutBtn, userProfile,
             userProfileTrigger, profileDropdown, userDisplayName, userAvatar, userIcon,
             avatarSpinner, avatarUploadInput, verificationStatus, resendVerificationBtn,
             authModal, closeModalBtn, authTitle, authFullNameInput, authEmailInput,
@@ -143,10 +143,9 @@
         function assignDOMElements() {
             mobileMenuButton = document.getElementById('mobile-menu-button');
             mobileMenu = document.getElementById('mobile-menu');
-            loginBtn = document.getElementById('login-btn');
             mobileLoginBtn = document.getElementById('mobile-login-btn');
             logoutBtn = document.getElementById('logout-btn');
-            userProfile = document.getElementById('user-profile');
+            userProfile = document.getElementById('user-profile'); // The container div, might not be needed directly if trigger is used
             userProfileTrigger = document.getElementById('user-profile-trigger');
             profileDropdown = document.getElementById('profile-dropdown');
             userDisplayName = document.getElementById('user-display-name');
@@ -204,50 +203,63 @@
 
         // --- UI Logic ---
         function setupUIEventListeners() {
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', () => {
+                   if(mobileMenu) mobileMenu.classList.toggle('hidden');
+                });
+            }
+
 
             const openModal = () => {
+                if (!authModal) return;
                 resetModalUI();
                 authModal.classList.remove('opacity-0', 'pointer-events-none');
-                authModal.querySelector('.modal-content').classList.remove('scale-95');
+                const modalContent = authModal.querySelector('.modal-content');
+                if(modalContent) modalContent.classList.remove('scale-95');
             };
             
             const closeModal = () => {
+                 if (!authModal) return;
                 authModal.classList.add('opacity-0', 'pointer-events-none');
-                authModal.querySelector('.modal-content').classList.add('scale-95');
+                 const modalContent = authModal.querySelector('.modal-content');
+                if(modalContent) modalContent.classList.add('scale-95');
             };
 
             // Login buttons
-            loginBtn.addEventListener('click', openModal);
-            mobileLoginBtn.addEventListener('click', openModal);
-            document.getElementById('profile-login-btn').addEventListener('click', openModal);
+            if (mobileLoginBtn) mobileLoginBtn.addEventListener('click', openModal);
+            const profileLoginBtn = document.getElementById('profile-login-btn');
+            if (profileLoginBtn) profileLoginBtn.addEventListener('click', openModal);
             
             // Modal controls
-            closeModalBtn.addEventListener('click', closeModal);
-            authModal.addEventListener('click', (e) => {
-                if (e.target === authModal) {
-                    closeModal();
-                }
-            });
+            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+            if (authModal) {
+                 authModal.addEventListener('click', (e) => {
+                    if (e.target === authModal) {
+                        closeModal();
+                    }
+                });
+            }
 
             // Profile Dropdown Logic
-            userProfileTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = profileDropdown.classList.contains('hidden');
-                if (isHidden) {
-                    profileDropdown.classList.remove('hidden');
-                    setTimeout(() => {
-                        profileDropdown.classList.remove('opacity-0', 'scale-95');
-                    }, 10);
-                } else {
-                    profileDropdown.classList.add('opacity-0', 'scale-95');
-                    setTimeout(() => {
-                        profileDropdown.classList.add('hidden');
-                    }, 200);
-                }
-            });
+            if (userProfileTrigger) {
+                userProfileTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!profileDropdown) return;
+                    const isHidden = profileDropdown.classList.contains('hidden');
+                    if (isHidden) {
+                        profileDropdown.classList.remove('hidden');
+                        setTimeout(() => {
+                            profileDropdown.classList.remove('opacity-0', 'scale-95');
+                        }, 10);
+                    } else {
+                        profileDropdown.classList.add('opacity-0', 'scale-95');
+                        setTimeout(() => {
+                            profileDropdown.classList.add('hidden');
+                        }, 200);
+                    }
+                });
+            }
+
 
             window.addEventListener('click', () => {
                 if (profileDropdown && !profileDropdown.classList.contains('hidden')) {
@@ -259,30 +271,42 @@
             });
 
             // Auth modal view switching
-            document.getElementById('auth-toggle-link').addEventListener('click', () => {
-                authView = 'signup';
-                updateAuthView();
-            });
+             const authToggleLink = document.getElementById('auth-toggle-link');
+            if(authToggleLink) {
+                 authToggleLink.addEventListener('click', () => {
+                    authView = (authView === 'login' ? 'signup' : 'login'); // Simplified toggle
+                    updateAuthView();
+                });
+            }
 
-            forgotPasswordLink.addEventListener('click', () => {
-                authView = 'reset';
-                updateAuthView();
-            });
 
-            backToLoginLink.addEventListener('click', () => {
-                authView = 'login';
-                updateAuthView();
-            });
+            if (forgotPasswordLink) {
+                 forgotPasswordLink.addEventListener('click', () => {
+                    authView = 'reset';
+                    updateAuthView();
+                });
+            }
+
+
+            if (backToLoginLink) {
+                 backToLoginLink.addEventListener('click', () => {
+                    authView = 'login';
+                    updateAuthView();
+                });
+            }
+
 
             // Tab switching logic
             function setupTabs(buttons, contents) {
+                 if (!buttons || buttons.length === 0 || !contents || contents.length === 0) return;
                 buttons.forEach(button => {
                     button.addEventListener('click', () => {
                         buttons.forEach(btn => btn.classList.remove('active'));
                         button.classList.add('active');
                         const tab = button.dataset.tab;
                         contents.forEach(content => {
-                            if (content.id.endsWith(tab)) {
+                             // Check if content id ends with the tab identifier (e.g., 'phd-india' ends with 'india')
+                            if (content.id && content.id.endsWith('-' + tab)) {
                                 content.classList.remove('hidden');
                             } else {
                                 content.classList.add('hidden');
@@ -293,16 +317,14 @@
             }
 
             const phdTabButtons = document.querySelectorAll('.phd-tab-button');
-            if (phdTabButtons.length > 0) {
-                const phdTabContents = document.querySelectorAll('.phd-tab-content');
-                setupTabs(phdTabButtons, phdTabContents);
-            }
+            const phdTabContents = document.querySelectorAll('.phd-tab-content');
+            setupTabs(phdTabButtons, phdTabContents);
+            
 
             const newsTabButtons = document.querySelectorAll('.news-tab-button');
-            if (newsTabButtons.length > 0) {
-                const newsTabContents = document.querySelectorAll('.news-tab-content');
-                setupTabs(newsTabButtons, newsTabContents);
-            }
+            const newsTabContents = document.querySelectorAll('.news-tab-content');
+             setupTabs(newsTabButtons, newsTabContents);
+
 
             // --- Cart Badge Update Logic ---
             updateCartBadge(); // Initial update
@@ -351,233 +373,278 @@
         } // end setupUIEventListeners
 
         function updateAuthView() {
+            if (!authModal) return; // Ensure modal exists
             showMessage('');
-            fullNameContainer.classList.add('hidden');
-            mobileContainer.classList.add('hidden');
-            passwordField.classList.remove('hidden');
-            authToggleText.classList.remove('hidden');
-            forgotPasswordContainer.classList.add('hidden');
-            backToLoginContainer.classList.add('hidden');
+            // Ensure elements exist before modifying
+            if (fullNameContainer) fullNameContainer.classList.add('hidden');
+            if (mobileContainer) mobileContainer.classList.add('hidden');
+            if (passwordField) passwordField.classList.remove('hidden');
+            if (authToggleText) authToggleText.classList.remove('hidden');
+            if (forgotPasswordContainer) forgotPasswordContainer.classList.add('hidden');
+            if (backToLoginContainer) backToLoginContainer.classList.add('hidden');
+
+            const authToggleLinkElement = document.getElementById('auth-toggle-link'); // Need to re-fetch inside if needed
 
             if (authView === 'login') {
-                authTitle.textContent = 'Login';
-                authActionText.textContent = 'Login';
-                forgotPasswordContainer.classList.remove('hidden');
-                authToggleText.innerHTML = `Don't have an account? <button id="auth-toggle-link" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>`;
-                document.getElementById('auth-toggle-link').addEventListener('click', () => { authView = 'signup'; updateAuthView(); });
+                if (authTitle) authTitle.textContent = 'Login';
+                if (authActionText) authActionText.textContent = 'Login';
+                if (forgotPasswordContainer) forgotPasswordContainer.classList.remove('hidden');
+                if (authToggleText) authToggleText.innerHTML = `Don't have an account? <button id="auth-toggle-link" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>`;
+                 // Re-attach listener after innerHTML change
+                 const newAuthToggleLink = document.getElementById('auth-toggle-link');
+                 if (newAuthToggleLink) {
+                      newAuthToggleLink.addEventListener('click', () => { authView = 'signup'; updateAuthView(); });
+                 }
             } else if (authView === 'signup') {
-                authTitle.textContent = 'Create Account';
-                authActionText.textContent = 'Sign Up';
-                fullNameContainer.classList.remove('hidden');
-                mobileContainer.classList.remove('hidden');
-                authToggleText.innerHTML = `Already have an account? <button id="auth-toggle-link" class="font-medium text-blue-600 hover:text-blue-500">Login</button>`;
-                document.getElementById('auth-toggle-link').addEventListener('click', () => { authView = 'login'; updateAuthView(); });
+                if (authTitle) authTitle.textContent = 'Create Account';
+                if (authActionText) authActionText.textContent = 'Sign Up';
+                if (fullNameContainer) fullNameContainer.classList.remove('hidden');
+                if (mobileContainer) mobileContainer.classList.remove('hidden');
+                if (authToggleText) authToggleText.innerHTML = `Already have an account? <button id="auth-toggle-link" class="font-medium text-blue-600 hover:text-blue-500">Login</button>`;
+                 // Re-attach listener after innerHTML change
+                 const newAuthToggleLink = document.getElementById('auth-toggle-link');
+                 if (newAuthToggleLink) {
+                    newAuthToggleLink.addEventListener('click', () => { authView = 'login'; updateAuthView(); });
+                 }
             } else if (authView === 'reset') {
-                authTitle.textContent = 'Reset Password';
-                authActionText.textContent = 'Send Reset Link';
-                passwordField.classList.add('hidden');
-                authToggleText.classList.add('hidden');
-                backToLoginContainer.classList.remove('hidden');
+                if (authTitle) authTitle.textContent = 'Reset Password';
+                if (authActionText) authActionText.textContent = 'Send Reset Link';
+                if (passwordField) passwordField.classList.add('hidden');
+                if (authToggleText) authToggleText.classList.add('hidden');
+                if (backToLoginContainer) backToLoginContainer.classList.remove('hidden');
                 showMessage('Enter your email to receive a password reset link.');
             }
         };
         
         function updateUIForLogin(user) {
-            currentUser = user;
-            if (user) {
-                // Hide desktop and mobile login buttons
-                loginBtn.classList.add('hidden');
-                mobileLoginBtn.textContent = 'Logged In';
-                mobileLoginBtn.disabled = true;
-                
-                // Show the user profile icon
-                userProfile.classList.remove('hidden');
-                
-                // Show the correct dropdown content
-                loggedOutDropdown.classList.add('hidden');
-                loggedInDropdown.classList.remove('hidden');
+             currentUser = user;
 
-                // Update profile info
-                userDisplayName.textContent = user.displayName || user.email;
+             const isUserLoggedIn = user && !user.isAnonymous; // Consider only non-anonymous users as truly logged in for UI purposes
 
-                if (user.photoURL) {
+            // Update profile icon/dropdown visibility
+            if (userProfileTrigger) userProfileTrigger.classList.remove('hidden'); // Always show the trigger
+
+             // Update profile icon content
+            if (isUserLoggedIn) {
+                 if (userDisplayName) userDisplayName.textContent = user.displayName || user.email?.split('@')[0] || 'User'; // Show name or part of email
+                if (userAvatar && user.photoURL) {
                     userAvatar.src = user.photoURL;
                     userAvatar.classList.remove('hidden');
-                    userIcon.classList.add('hidden');
+                   if(userIcon) userIcon.classList.add('hidden');
                 } else {
-                    userAvatar.classList.add('hidden');
-                    userIcon.classList.remove('hidden');
+                   if(userAvatar) userAvatar.classList.add('hidden');
+                   if(userIcon) userIcon.classList.remove('hidden');
                 }
-
-                if (!user.emailVerified) {
-                    verificationStatus.classList.remove('hidden');
-                } else {
-                    verificationStatus.classList.add('hidden');
-                }
-
-                // Pre-fill checkout form
-                if (shippingForm) {
-                     if (user.displayName) document.getElementById('shipping-name').value = user.displayName;
-                     if (user.email) document.getElementById('shipping-email').value = user.email;
-                }
-
             } else {
-                // Show desktop and mobile login buttons
-                loginBtn.classList.remove('hidden');
-                mobileLoginBtn.textContent = 'Login / Sign Up';
-                mobileLoginBtn.disabled = false;
-                
-                // Hide profile icon
-                userProfile.classList.add('hidden');
-                
-                // Show the logged-out dropdown content
-                loggedOutDropdown.classList.remove('hidden');
-                loggedInDropdown.classList.add('hidden');
+                 if (userDisplayName) userDisplayName.textContent = 'Profile'; // Default text when logged out
+                 if(userAvatar) userAvatar.classList.add('hidden');
+                 if(userIcon) userIcon.classList.remove('hidden');
+            }
 
-                userDisplayName.textContent = '';
+
+             // Toggle dropdown content visibility
+             if (loggedInDropdown) loggedInDropdown.classList.toggle('hidden', !isUserLoggedIn);
+             if (loggedOutDropdown) loggedOutDropdown.classList.toggle('hidden', isUserLoggedIn);
+
+
+            // Update mobile login button state
+            if (mobileLoginBtn) {
+                 mobileLoginBtn.textContent = isUserLoggedIn ? 'View Profile' : 'Login / Sign Up'; // Or manage differently
+                 mobileLoginBtn.disabled = false; // It should always open something (modal or profile page eventually)
+            }
+
+
+            // Verification status
+            if (verificationStatus) verificationStatus.classList.toggle('hidden', !isUserLoggedIn || user.emailVerified);
+
+            // Pre-fill checkout form (if elements exist)
+            if (isUserLoggedIn && shippingForm) {
+                 const nameInput = document.getElementById('shipping-name');
+                 const emailInput = document.getElementById('shipping-email');
+                 if (nameInput && user.displayName) nameInput.value = user.displayName;
+                 if (emailInput && user.email) emailInput.value = user.email;
             }
         };
+
 
         function updateCartBadge() {
             if (cartCountBadge) {
                 const count = getCartCount();
                 cartCountBadge.textContent = count;
-                if (count > 0) {
-                    cartCountBadge.classList.remove('hidden');
-                } else {
-                    cartCountBadge.classList.add('hidden'); // Hide if cart is empty
-                }
+                cartCountBadge.classList.toggle('hidden', count === 0);
             }
         }
 
         // --- Firebase Auth Logic ---
         async function initializeAuth() {
             onAuthStateChanged(auth, (user) => {
-                if (user) {
+                if (user && !user.isAnonymous) { // Reload only for actual logged-in users to check verification
                     user.reload().then(() => {
-                        updateUIForLogin(auth.currentUser);
+                        updateUIForLogin(auth.currentUser); // Use auth.currentUser to get the reloaded state
+                    }).catch(error => {
+                         console.warn("Failed to reload user state:", error);
+                         updateUIForLogin(user); // Update with potentially stale data on error
                     });
                 } else {
-                    updateUIForLogin(null);
+                    updateUIForLogin(user); // Update UI for anonymous or logged-out state
                 }
             });
 
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                 // Check if __initial_auth_token exists and is not empty or null
+                 const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (initialToken) {
+                     console.log("Attempting sign in with custom token.");
+                    await signInWithCustomToken(auth, initialToken);
+                     console.log("Signed in with custom token.");
                 } else {
-                    await signInAnonymously(auth);
+                     console.log("No custom token, attempting anonymous sign in.");
+                    // Only sign in anonymously if no user is currently signed in
+                    if (!auth.currentUser) {
+                         await signInAnonymously(auth);
+                         console.log("Signed in anonymously.");
+                    } else {
+                         console.log("User already signed in, skipping anonymous sign in.");
+                         // Still update UI in case the initial state was missed
+                         updateUIForLogin(auth.currentUser);
+                    }
                 }
             } catch (error) {
                 console.error("Firebase auth initialization error:", error);
+                 // Fallback: ensure UI reflects logged-out state if all else fails
+                 updateUIForLogin(null);
             }
 
-            logoutBtn.addEventListener('click', () => {
-                signOut(auth).catch((error) => {
-                    console.error('Logout Error:', error);
-                    showMessage('Failed to logout. Please try again.', 'error');
+            // Ensure logout button has listener (moved inside initAuth for safety)
+             if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    signOut(auth).catch((error) => {
+                        console.error('Logout Error:', error);
+                        // Use showToast if available, otherwise console.error
+                        if(typeof showToast === 'function') {
+                             showToast('Failed to logout. Please try again.', 'error');
+                        } else {
+                             console.error('Failed to logout. Please try again.');
+                        }
+                    });
                 });
-            });
+            }
 
-            resendVerificationBtn.addEventListener('click', () => {
-                if (currentUser) {
-                    sendEmailVerification(currentUser)
-                        .then(() => {
-                            showToast('Verification link sent again. Please check your inbox.', 'info');
-                        })
-                        .catch(error => {
-                            showToast('Error sending verification link.', 'error');
-                        });
-                }
-            });
 
-            authActionBtn.addEventListener('click', async () => {
-                const fullName = authFullNameInput.value.trim();
-                const email = authEmailInput.value.trim();
-                const password = authPasswordInput.value;
+            // Ensure resend verification button has listener
+             if (resendVerificationBtn) {
+                resendVerificationBtn.addEventListener('click', () => {
+                    if (currentUser && !currentUser.isAnonymous) { // Only for logged-in, non-anonymous users
+                        sendEmailVerification(currentUser)
+                            .then(() => {
+                                showToast('Verification link sent again. Please check your inbox.', 'info');
+                            })
+                            .catch(error => {
+                                showToast('Error sending verification link: ' + error.message, 'error');
+                            });
+                    }
+                });
+            }
 
-                if (!email) {
-                    showMessage('Please enter your email address.', 'error');
-                    return;
-                }
 
-                if (authView !== 'reset' && !password) {
-                    showMessage('Please enter your password.', 'error');
-                    return;
-                }
-                if (authView === 'signup' && !fullName) {
-                    showMessage('Please enter your full name.', 'error');
-                    return;
-                }
-                
-                setLoading(authActionBtn, authActionText, authSpinner, true);
-                
-                if (authView === 'login') {
-                    signInWithEmailAndPassword(auth, email, password)
-                        .then((userCredential) => {
+            // Ensure auth action button has listener
+             if (authActionBtn) {
+                 authActionBtn.addEventListener('click', async () => {
+                     // Ensure inputs exist before accessing value
+                    const fullName = authFullNameInput ? authFullNameInput.value.trim() : '';
+                    const email = authEmailInput ? authEmailInput.value.trim() : '';
+                    const password = authPasswordInput ? authPasswordInput.value : '';
+
+                    if (!email) {
+                        showMessage('Please enter your email address.', 'error');
+                        return;
+                    }
+
+                    if (authView !== 'reset' && !password) {
+                        showMessage('Please enter your password.', 'error');
+                        return;
+                    }
+                    if (authView === 'signup' && !fullName) {
+                        showMessage('Please enter your full name.', 'error');
+                        return;
+                    }
+                    
+                    setLoading(authActionBtn, authActionText, authSpinner, true);
+                    
+                    try {
+                         if (authView === 'login') {
+                            await signInWithEmailAndPassword(auth, email, password);
                             showMessage('Login successful!', 'success');
                             setTimeout(closeModal, 1500);
-                        })
-                        .catch((error) => showMessage(getFriendlyErrorMessage(error.code), 'error'))
-                        .finally(() => setLoading(authActionBtn, authActionText, authSpinner, false));
-                } else if (authView === 'signup') {
-                    try {
-                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                        await updateProfile(userCredential.user, { displayName: fullName });
-                        await sendEmailVerification(userCredential.user);
-                        
-                        updateUIForLogin(auth.currentUser);
-
-                        showMessage('Account created! A verification link has been sent to your email.', 'success');
-                        setTimeout(closeModal, 1500);
+                        } else if (authView === 'signup') {
+                            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                            await updateProfile(userCredential.user, { displayName: fullName });
+                            await sendEmailVerification(userCredential.user);
+                            
+                            // No need to call updateUIForLogin here, onAuthStateChanged will handle it
+                            showMessage('Account created! A verification link has been sent to your email.', 'success');
+                            setTimeout(closeModal, 1500);
+                        } else if (authView === 'reset') {
+                            await sendPasswordResetEmail(auth, email);
+                            showMessage('Password reset link sent! Please check your email.', 'success');
+                        }
                     } catch (error) {
-                        showMessage(getFriendlyErrorMessage(error.code), 'error');
+                         showMessage(getFriendlyErrorMessage(error.code), 'error');
                     } finally {
-                        setLoading(authActionBtn, authActionText, authSpinner, false);
-                    }
-                } else if (authView === 'reset') {
-                    sendPasswordResetEmail(auth, email)
-                        .then(() => showMessage('Password reset link sent! Please check your email.', 'success'))
-                        .catch((error) => showMessage(getFriendlyErrorMessage(error.code), 'error'))
-                        .finally(() => setLoading(authActionBtn, authActionText, authSpinner, false));
-                }
-            });
-
-            // --- Profile Picture Upload ---
-            avatarUploadInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file || !currentUser) return;
-
-                const storageRef = ref(storage, `profile_pictures/${currentUser.uid}`);
-                
-                userIcon.classList.add('hidden');
-                userAvatar.classList.add('hidden');
-                avatarSpinner.classList.remove('hidden');
-
-                uploadBytes(storageRef, file).then(snapshot => {
-                    return getDownloadURL(snapshot.ref);
-                }).then(downloadURL => {
-                    return updateProfile(currentUser, { photoURL: downloadURL });
-                }).then(() => {
-                    userAvatar.src = currentUser.photoURL;
-                    avatarSpinner.classList.add('hidden');
-                    userAvatar.classList.remove('hidden');
-                    showToast('Profile picture updated!', 'success');
-                }).catch(error => {
-                    console.error("Error uploading profile picture: ", error);
-                    showToast('Failed to update picture.', 'error');
-                    avatarSpinner.classList.add('hidden');
-                    if (currentUser.photoURL) {
-                        userAvatar.classList.remove('hidden');
-                    } else {
-                        userIcon.classList.remove('hidden');
+                         setLoading(authActionBtn, authActionText, authSpinner, false);
                     }
                 });
-            });
-        }
+             }
+
+
+            // --- Profile Picture Upload ---
+            if (avatarUploadInput) {
+                 avatarUploadInput.addEventListener('change', (e) => {
+                     const file = e.target.files ? e.target.files[0] : null;
+                    // Check if currentUser exists, is not anonymous, and a file was selected
+                    if (!file || !currentUser || currentUser.isAnonymous) return;
+
+                    const storageRef = ref(storage, `profile_pictures/${currentUser.uid}`);
+                    
+                    // Show spinner, hide icon/avatar
+                     if(userIcon) userIcon.classList.add('hidden');
+                     if(userAvatar) userAvatar.classList.add('hidden');
+                     if(avatarSpinner) avatarSpinner.classList.remove('hidden');
+
+
+                    uploadBytes(storageRef, file).then(snapshot => {
+                        return getDownloadURL(snapshot.ref);
+                    }).then(downloadURL => {
+                         // Update Firebase Auth profile
+                        return updateProfile(currentUser, { photoURL: downloadURL });
+                    }).then(() => {
+                         // Success: Update the UI immediately
+                         if (userAvatar && currentUser.photoURL) {
+                             userAvatar.src = currentUser.photoURL; // Use the updated URL
+                             userAvatar.classList.remove('hidden');
+                         }
+                         if(avatarSpinner) avatarSpinner.classList.add('hidden');
+                         showToast('Profile picture updated!', 'success');
+                    }).catch(error => {
+                        console.error("Error uploading profile picture: ", error);
+                        showToast('Failed to update picture.', 'error');
+                         // Revert UI on error: Show original avatar or icon
+                         if(avatarSpinner) avatarSpinner.classList.add('hidden');
+                         if (userAvatar && currentUser.photoURL) { // Check if there was a photo before
+                             userAvatar.classList.remove('hidden');
+                         } else if (userIcon) {
+                             userIcon.classList.remove('hidden'); // Show default icon if no previous photo
+                         }
+                    });
+                });
+             }
+        } // end initializeAuth
+        
         
         // --- Cart Page Logic ---
         function renderCart() {
+             if (!cartContainer || !checkoutBtn || !cartTotalEl) return; // Check if elements exist
+
             const items = getCartItems();
             cartContainer.innerHTML = ''; // Clear existing items
 
@@ -600,25 +667,25 @@
                 }
 
                 itemEl.innerHTML = `
-                    <div class="flex items-center mb-4 md:mb-0">
-                        <img src="${item.image}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg mr-4">
-                        <div>
-                            <h3 class="font-bold text-lg text-slate-800">${item.name}</h3>
-                            <p class="text-gray-600">₹${item.price.toFixed(2)}</p>
+                    <div class="flex items-center mb-4 md:mb-0 w-full md:w-auto">
+                        <img src="${item.image || 'https://placehold.co/80x80/e2e8f0/334155?text=Item'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg mr-4 flex-shrink-0">
+                        <div class="flex-grow">
+                            <h3 class="font-bold text-lg text-slate-800 break-words">${item.name}</h3>
+                            <p class="text-gray-600">₹${item.price ? item.price.toFixed(2) : '0.00'}</p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 sm:space-x-4 mt-4 md:mt-0">
                         <div class="flex items-center border rounded-lg">
-                            <button class="quantity-change-btn p-2" data-id="${item.id}" data-change="-1">
+                            <button class="quantity-change-btn p-2 text-gray-600 hover:text-black" data-id="${item.id}" data-change="-1" aria-label="Decrease quantity">
                                 <i class="fas fa-minus text-sm"></i>
                             </button>
-                            <input type="number" value="${item.quantity}" min="1" class="w-16 text-center border-l border-r quantity-input" data-id="${item.id}">
-                            <button class="quantity-change-btn p-2" data-id="${item.id}" data-change="1">
+                            <input type="number" value="${item.quantity}" min="1" class="w-12 sm:w-16 text-center border-l border-r quantity-input appearance-none" data-id="${item.id}" aria-label="Item quantity">
+                            <button class="quantity-change-btn p-2 text-gray-600 hover:text-black" data-id="${item.id}" data-change="1" aria-label="Increase quantity">
                                 <i class="fas fa-plus text-sm"></i>
                             </button>
                         </div>
-                        <p class="text-lg font-semibold w-24 text-right">₹${(item.price * item.quantity).toFixed(2)}</p>
-                        <button class="remove-item-btn text-red-500 hover:text-red-700 p-2" data-id="${item.id}">
+                        <p class="text-lg font-semibold w-20 sm:w-24 text-right">₹${(item.price * item.quantity).toFixed(2)}</p>
+                        <button class="remove-item-btn text-red-500 hover:text-red-700 p-2" data-id="${item.id}" aria-label="Remove item">
                             <i class="fas fa-trash-alt text-lg"></i>
                         </button>
                     </div>
@@ -630,7 +697,7 @@
             cartContainer.querySelectorAll('.remove-item-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     removeFromCart(btn.dataset.id);
-                    renderCart();
+                    renderCart(); // Re-render the cart UI
                 });
             });
 
@@ -639,124 +706,191 @@
                     const id = btn.dataset.id;
                     const change = parseInt(btn.dataset.change);
                     const currentItem = getCartItems().find(i => i.id === id);
-                    updateQuantity(id, currentItem.quantity + change);
-                    renderCart();
+                    if(currentItem) { // Ensure item exists
+                         const newQuantity = (currentItem.quantity || 0) + change;
+                         updateQuantity(id, newQuantity);
+                         renderCart(); // Re-render the cart UI
+                    }
                 });
             });
 
             cartContainer.querySelectorAll('.quantity-input').forEach(input => {
                 input.addEventListener('change', (e) => {
                     const id = input.dataset.id;
-                    const newQuantity = parseInt(e.target.value);
-                    if (newQuantity) {
-                        updateQuantity(id, newQuantity);
-                        renderCart();
-                    }
+                    let newQuantity = parseInt(e.target.value);
+                     // Validate quantity: must be at least 1
+                     if (isNaN(newQuantity) || newQuantity < 1) {
+                         newQuantity = 1; // Reset to 1 if invalid input
+                         e.target.value = 1; // Update the input field visually
+                     }
+                    updateQuantity(id, newQuantity);
+                    renderCart(); // Re-render the cart UI
                 });
+                 // Prevent non-numeric input for number fields if needed (optional)
+                 input.addEventListener('keypress', (e) => {
+                     if (!/[0-9]/.test(e.key)) {
+                         e.preventDefault();
+                     }
+                 });
             });
             
             cartTotalEl.textContent = `₹${getCartTotal().toFixed(2)}`;
         }
 
+
         // --- Checkout Page Logic ---
         function renderCheckoutSummary() {
+            // Check if checkout elements exist
+            if (!checkoutSummaryContainer || !payNowBtn || !checkoutSubtotal || !checkoutTotal) return;
+
             const items = getCartItems();
             const total = getCartTotal();
 
             if (items.length === 0) {
                 checkoutSummaryContainer.innerHTML = '<p class="text-gray-500">Your cart is empty.</p>';
                 payNowBtn.disabled = true;
-                payNowBtn.classList.add('opacity-50');
+                payNowBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                checkoutSubtotal.textContent = '₹0.00';
+                checkoutTotal.textContent = '₹0.00';
             } else {
                 checkoutSummaryContainer.innerHTML = ''; // Clear
                 items.forEach(item => {
                     checkoutSummaryContainer.innerHTML += `
                         <div class="flex justify-between items-center text-sm">
-                            <span class="font-medium text-slate-700">${item.name} (x${item.quantity})</span>
-                            <span class="text-gray-600">₹${(item.price * item.quantity).toFixed(2)}</span>
+                            <span class="font-medium text-slate-700">${item.name || 'Item'} (x${item.quantity || 1})</span>
+                            <span class="text-gray-600">₹${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
                         </div>
                     `;
                 });
                 checkoutSubtotal.textContent = `₹${total.toFixed(2)}`;
                 checkoutTotal.textContent = `₹${total.toFixed(2)}`;
                 payNowBtn.disabled = false;
-                payNowBtn.classList.remove('opacity-50');
+                payNowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            // Pre-fill form if user is logged in
-            if (currentUser) {
-                if (currentUser.displayName) document.getElementById('shipping-name').value = currentUser.displayName;
-                if (currentUser.email) document.getElementById('shipping-email').value = currentUser.email;
-            }
+            // Pre-fill form if user is logged in and elements exist
+             if (currentUser && !currentUser.isAnonymous) {
+                 const nameInput = document.getElementById('shipping-name');
+                 const emailInput = document.getElementById('shipping-email');
+                 if (nameInput && currentUser.displayName) nameInput.value = currentUser.displayName;
+                 if (emailInput && currentUser.email) emailInput.value = currentUser.email;
+             }
         }
 
+
         function handlePayment() {
+             // Check if Razorpay script is loaded
+             if (typeof Razorpay === 'undefined') {
+                 showToast('Payment gateway is not available. Please try again later.', 'error');
+                 console.error('Razorpay script not loaded.');
+                 return;
+             }
+
             // Check login
             if (!currentUser || currentUser.isAnonymous) {
                 showToast('Please log in to complete your purchase.', 'error');
-                openModal();
+                openModal(); // Function to open login modal
                 return;
             }
             
             // Check email verification
             if (!currentUser.emailVerified) {
                 showToast('Please verify your email before purchasing.', 'error');
+                // Optionally, trigger profile dropdown or modal to show resend link
                 return;
             }
 
             // Check form validity
-            if (!shippingForm.checkValidity()) {
-                shippingForm.reportValidity();
+             if (!shippingForm || !shippingForm.checkValidity()) {
+                 if(shippingForm) shippingForm.reportValidity(); // Show browser validation messages
                 showToast('Please fill in all required shipping details.', 'error');
                 return;
             }
 
             // All checks passed, initiate payment
             const totalAmount = getCartTotal();
+            if (totalAmount <= 0) {
+                 showToast('Your cart is empty or has no value.', 'error');
+                 return;
+            }
+
+             // Get form values safely
+             const getName = () => document.getElementById('shipping-name')?.value || '';
+             const getEmail = () => document.getElementById('shipping-email')?.value || '';
+             const getPhone = () => document.getElementById('shipping-phone')?.value || '';
+             const getAddress = () => document.getElementById('shipping-address')?.value || '';
+             const getCity = () => document.getElementById('shipping-city')?.value || '';
+             const getState = () => document.getElementById('shipping-state')?.value || '';
+             const getZip = () => document.getElementById('shipping-zip')?.value || '';
+
+
             const options = {
                 // IMPORTANT: Replace with your REAL Razorpay Key ID
-                key: "YOUR_RAZORPAY_KEY_ID_HERE", 
-                amount: totalAmount * 100,
+                // key: "YOUR_RAZORPAY_KEY_ID_HERE", // Keep this commented out or replace in production
+                key: "rzp_test_YOUR_TEST_KEY_HERE", // Replace with your actual TEST key for development
+                amount: Math.round(totalAmount * 100), // Ensure integer value for paisa/cents
                 currency: "INR",
                 name: "Elite Science Institute",
-                description: "Payment for ESI Courses and Merchandise",
-                image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAVDSURBVHhe7ZxrbxxVFMd/t3t6D+d4bM947Ni+SSdJmwYSCiFBKaWNSkAQEChIEaoP1IcqVSsCIaKqghQk+gNVJVS0f4CU+gNCkRD1AVLVAwklEBINlMRJ+3Ls2B6v57Eze3rXvT1daSckTuwknbY++JNkluyZ+f/cmTln5s4qYRiGYRiGYRiGYRiGYZg/g1pLS8t2sVi8A/g4y/qAcZkXwJ8A7k/K52rL1L2xsaEvAP/k/C53e3s72d/b24uqqqp+hPwgxL4I/tKSc+Ul5e39PDwsFtaWj4F/j/wTZYtA3BtbW13bW1t+fT09JdLS0uPk7wYkC8CPlL9+fn5aRzH23KcZ+U3ge+z/AbwJ/A06AdYlj0L/G/gI4BT8WnZWV1dveXh4eHj4+MfA/8GvAt8yvppYBnwD+BrAGfjt+B7wF4An1N+Ffg3AP0A1wC/Bb4G/B/wY2r75G7vAD4CvD0L/sX+f8DX3wD/GHgd+DvA3wP/DPg49c1T+94G/gr4J/s9P4b/Jvb/mPQrJd2S5fM5AEv/vW3b/l5eXt4I/C57I8sHga+T/L9kQ+h1gN9SviwA/b7/t7a2/r+wsHBfX19/BnwI/CbwF8A32TdgX2XbANyV3gGchX+BfQC+SXn/x9c3gF+B3/J/N+DX1DdP7Xsb+CfgG/Z7Pgj/Tez/QejX2P6PqP0N4D3gL4HPG/AfcL6npgf4S3rG81dbsN+lX2T/GvA/gE/Y/gL2t5L8D8Cfqe2T/f/P2H9Qf69+jP0v5H9P23/I/pL9R2zzP4A/rWP0P8p+F/BbSvYv5Tf1D+qfCvxT/Wf1H9O/Z//R/VvD/t/Vf0r/wH6L/W/W/3n9K5/A/1H/Qf1/6F/49G8R/5Vl/0s/178Z/11K/tL+s1r279Q/rN+y/4X9v/Un+V/Qv1R/Ffs1/Zvq37L/pP0e/R/1v/T/pv/V/5T+Z5R8Jv/j/G0s+V/+WfVvrX/B/i/r/7H+P5L9G/ov6B/Qf+b/Bv/36J+h/0D/K/3P8j/TvyB/n/7J/j9S/q/pX/I/yv9v/Zf2N/Wf0H9D/4n+h/Vf2J/Wf+b/m/TP+a/U/S/7a/xf5/VfV+Ff+V/Gf2V+yfVv+v6B/4v7D+t/V/Vf8J/Zf8b+3f8X9J/2D/P/sf1f8y/Wv2P1HyXvaf1f9W/W/VP2h/3P5v/N+y/4b9JfsL+9/S/8r+t+T9Kv9r9p/Q/6D/R/qf4l/V/0H/oP5r+d/Uf5P/3fpf5R8k76V/Sv9A/Uv8i/Sf1D/V/7X636r/hP0j+2v2v8R/V/R/yv8k+0f6B/S/sP8i/Rf2P1f/C/uv1H+s/zL931L+9+wv6V/Uv5Tf1T+u/6n+pfsfqP9D/4/0X9J/0P9K/33+V/T/1b8A/1dK9u/UP6rfov+V/T/1J/n/y/4B+zfUv1l/MftL+l/q37D/pP0e/V/sf6B/Bv/H9N/G/3lKPiP/vP5f5H8s/8vq/83/m/rfWPdv+0/Qv6N/Wf+R/Uf239C/Yf9Z/7P+U/3vVv+7lfzv61/Jv5H/Vfq/pX95/yn7m+qv8v/R/yr99/Vvq3/D/l/Sv2L/5/W/R/9X+x/Uv6h/Xv/7lf039R8k76v/x/pfpP8n/V/yP8y/Tv94/lf231T/Vfo31J/bf8b+qfpfqv9Z/zX95/pf5H85/c/1X9S/Sv+N/Tv1T+yfpP8A/736h/Vf2v/N/ov6n+L/0v8h/XvqH9D/A/yflL/Vf1f/BfqX63+n/3lKPi/29/Svqv9e/Vv1j/Qfq3+3/pv879P/Av8V/J+l/3l+9+wv8J9T/q3+m/U/wH+j/63+31Xv/fV/wH9r+zfp36A/F36h/VfsP/X/2H9+1b+DfqvVb/D/u/rX63+Qfpfsv+u+r/3/Vv69+zvqf+K/h/8J/T/VP+K/h/9H/Sv0P8y/Y/yn1l/NfsV/G8R/5Vl/yv7N/SvUP9d/Xv2P1H/C/ov7B+n/2l9d6/5X9B/W/2D+nfov1p/rP6jlfzt7W/oH7D/W32//A/7B+S/Uf8A/rWV/R/Qf8X+Ffo/rP9F/Sv1j+xfo/9l/Uf2D1Hyh/WvVP+v/xclv9J+T/+/lf2l/Qv676b/1/7P1f9H/z/S/wT1/wf8f/g/V39L/Vfq+4h+n6V8H2c5/rM/0X9M/tL+X/RfVP+R/bf2f/2L+n/79e0vU/0v2R+h/0H/K/1/W/9B/T/0v+LkV/C/zP/v6T/Zf43W/1/W/4jlfwh+8/yP2T/Q/yv7H9X/+uP/0A9J+yfqP9W/z7S/g313zD+A4RhGIZhGIZhGIZhGIZhGJrTfwI7o1u2yH3yAAAAAElFTkSuQmCC",
+                description: "Payment for ESI Items", // Generic description
+                image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAVDSURBVHhe7ZxrbxxVFMd/t3t6D+d4bM947Ni+SSdJmwYSCiFBKaWNSkAQEChIEaoP1IcqVSsCIaKqghQk+gNVJVS0f4CU+gNCkRD1AVLVAwklEBINlMRJ+3Ls2B6v57Eze3rXvT1daSckTuwknbY++JNkluyZ+f/cmTln5s4qYRiGYRiGYRiGYRiGYZg/g1pLS8t2sVi8A/g4y/qAcZkXwJ8A7k/K52rL1L2xsaEvAP/k/C53e3s72d/b24uqqqp+hPwgxL4I/tKSc+Ul5e39PDwsFtaWj4F/j/wTZYtA3BtbW13bW1t+fT09JdLS0uPk7wYkC8CPlL9+fn5aRzH23KcZ+U3ge+z/AbwJ/A06AdYlj0L/G/gI4BT8WnZWV1dveXh4eHj4+MfA/8GvAt8yvppYBnwD+BrAGfjt+B7wF4An1N+Ffg3AP0A1wC/Bb4G/B/wY2r75G7vAD4CvD0L/sX+f8DX3wD/GHgd+DvA3wP/DPg49c1T+94G/gr4J/s9P4b/Jvb/mPQrJd2S5fM5AEv/vW3b/l5eXt4I/C57I8sHga+T/L9kQ+h1gN9SviwA/b7/t7a2/r+wsHBfX19/BnwI/CbwF8A32TdgX2XbANyV3gGchX+BfQC+SXn/x9c3gF+B3/J/N+DX1DdP7Xsb+CfgG/Z7Pgj/Tez/QejX2P6PqP0N4D3gL4HPG/AfcL6npgf4S3rG81dbsN+lX2T/GvA/gE/Y/gL2t5L8D8Cfqe2T/f/P2H9Qf69+jP0v5H9P23/I/pL9R2zzP4A/rWP0P8p+F/BbSvYv5Tf1D+qfCvxT/Wf1H9O/Z//R/VvD/t/Vf0r/wH6L/W/W/3n9K5/A/1H/Qf1/6F/49G8R/5Vl/0s/178Z/11K/tL+s1r279Q/rN+y/4X9v/Un+V/Qv1R/Ffs1/Zvq37L/pP0e/R/1v/T/pv/V/5T+Z5R8Jv/j/G0s+V/+WfVvrX/B/i/r/7H+P5L9G/ov6B/Qf+b/Bv/36J+h/0D/K/3P8j/TvyB/n/7J/j9S/q/pX/I/yv9v/Zf2N/Wf0H9D/4n+h/Vf2J/Wf+b/m/TP+a/U/S/7a/xf5/VfV+Ff+V/Gf2V+yfVv+v6B/4v7D+t/V/Vf8J/Zf8b+3f8X9J/2D/P/sf1f8y/Wv2P1HyXvaf1f9W/W/VP2h/3P5v/N+y/4b9JfsL+9/S/8r+t+T9Kv9r9p/Q/6D/R/qf4l/V/0H/oP5r+d/Uf5P/3fpf5R8k76V/Sv9A/Uv8i/Sf1D/V/7X636r/hP0j+2v2v8R/V/R/yv8k+0f6B/S/sP8i/Rf2P1f/C/uv1H+s/zL931L+9+wv6V/Uv5Tf1T+u/6n+pfsfqP9D/4/0X9J/0P9K/33+V/T/1b8A/1dK9u/UP6rfov+V/T/1J/n/y/4B+zfUv1l/MftL+l/q37D/pP0e/V/sf6B/Bv/H9N/G/3lKPiP/vP5f5H8s/8vq/83/m/rfWPdv+0/Qv6N/Wf+R/Uf239C/Yf9Z/7P+U/3vVv+7lfzv61/Jv5H/Vfq/pX95/yn7m+qv8v/R/yr99/Vvq3/D/l/Sv2L/5/W/R/9X+x/Uv6h/Xv/7lf039R8k76v/x/pfpP8n/V/yP8y/Tv94/lf231T/Vfo31J/bf8b+qfpfqv9Z/zX95/pf5H85/c/1X9S/Sv+N/Tv1T+yfpP8A/736h/Vf2v/N/ov6n+L/0v8h/XvqH9D/A/yflL/Vf1f/BfqX63+n/3lKPi/29/Svqv9e/Vv1j/Qfq3+3/pv879P/Av8V/J+l/3l+9+wv8J9T/q3+m/U/wH+j/63+31Xv/fV/wH9r+zfp36A/F36h/VfsP/X/2H9+1b+DfqvVb/D/u/rX63+Qfpfsv+u+r/3/Vv69+zvqf+K/h/8J/T/VP+K/h/9H/Sv0P8y/Y/yn1l/NfsV/G8R/5Vl/yv7N/SvUP9d/Xv2P1H/C/ov7B+n/2l9d6/5X9B/W/2D+nfov1p/rP6jlfzt7W/oH7D/W32//A/7B+S/Uf8A/rWV/R/Qf8X+Ffo/rP9F/Sv1j+xfo/9l/Uf2D1Hyh/WvVP+v/xclv9J+T/+/lf2l/Qv676b/1/7P1f9H/z/S/wT1/wf8f/g/V39L/Vfq+4h+n6V8H2c5/rM/0X9M/tL+X/RfVP+R/bf2f/2L+n/79e0vU/0v2R+h/0H/K/1/W/9B/T/0v+LkV/C/zP/v6T/Zf43W/1/W/4jlfwh+8/yP2T/Q/yv7H9X/+uP/0A9J+yfqP9W/z7S/g313zD+A4RhGIZhGIZhGIZhGIZhGJrTfwI7o1u2yH3yAAAAAElFTkSuQmCC", // Use your actual logo URL or base64
                 handler: function (response) {
-                    console.log(response);
+                    console.log("Razorpay Response:", response);
                     showToast(`Payment successful! Payment ID: ${response.razorpay_payment_id}`, 'success');
                     clearCart();
-                    // Redirect to home after successful payment
+                    // Optional: Send payment details to your backend here
+                    // Redirect to home page after a delay
                     setTimeout(() => {
                         showPage('page-home');
                     }, 3000);
                 },
                 prefill: {
-                    name: document.getElementById('shipping-name').value,
-                    email: document.getElementById('shipping-email').value,
-                    contact: document.getElementById('shipping-phone').value
+                    name: getName(),
+                    email: getEmail(),
+                    contact: getPhone()
                 },
                 notes: {
-                    address: document.getElementById('shipping-address').value,
-                    city: document.getElementById('shipping-city').value,
-                    state: document.getElementById('shipping-state').value,
-                    zip: document.getElementById('shipping-zip').value,
-                    userId: currentUser.uid
+                    address_line1: getAddress(),
+                    city: getCity(),
+                    state: getState(),
+                    zipcode: getZip(),
+                    esi_user_id: currentUser.uid // Add user ID for reference
                 },
                 theme: {
-                    color: "#1d4ed8"
-                }
+                    color: "#ca8a04" // Amber color to match branding
+                },
+                 modal: {
+                     ondismiss: function() {
+                         console.log('Checkout form closed');
+                         // You could show a message here if needed
+                     }
+                 }
             };
             
-            const rzp1 = new Razorpay(options);
-            rzp1.on('payment.failed', function (response){
-                console.log(response);
-                showToast(`Payment failed: ${response.error.description}`, 'error');
-            });
-            rzp1.open();
-        }
+            try {
+                 const rzp1 = new Razorpay(options);
+                 rzp1.on('payment.failed', function (response){
+                    console.error("Razorpay Payment Failed:", response);
+                    // Provide more specific error details if possible
+                     let errorMsg = `Payment failed`;
+                     if (response.error) {
+                         errorMsg += `: ${response.error.description || response.error.reason || 'Unknown error'}`;
+                         console.error(`Code: ${response.error.code}, Source: ${response.error.source}, Step: ${response.error.step}`);
+                         // Log metadata if available for debugging
+                         if(response.error.metadata) console.error("Metadata:", response.error.metadata);
+                     }
+                    showToast(errorMsg, 'error');
+                });
+                rzp1.open();
+            } catch (error) {
+                 console.error("Error initializing Razorpay:", error);
+                 showToast("Could not initiate payment. Please try again.", "error");
+            }
+        } // end handlePayment
+        
         
         // --- Helper Functions ---
         function showMessage(msg, type = 'info') {
+             if (!authMessage) return;
             authMessage.textContent = msg;
             authMessage.className = 'mt-4 text-center text-sm'; // reset classes
             switch (type) {
@@ -766,81 +900,105 @@
                 case 'error':
                     authMessage.classList.add('text-red-600');
                     break;
-                default:
+                default: // 'info' or other
                     authMessage.classList.add('text-gray-600');
             }
+             authMessage.classList.remove('hidden'); // Ensure message is visible
         }
         
+        
         function showToast(message, type = 'success') {
+             if (!toast || !toastMessage) return;
             toastMessage.textContent = message;
-            toast.className = 'toast-notification fixed bottom-5 right-5 text-white py-3 px-6 rounded-lg shadow-lg transform translate-y-24 opacity-0 pointer-events-none z-50';
+            // Reset classes, apply base and type-specific background
+            toast.className = 'toast-notification fixed bottom-5 right-5 text-white py-3 px-6 rounded-lg shadow-lg transform transition-transform transition-opacity duration-300 ease-in-out z-[100]'; // Added z-index
             
             if (type === 'success') {
                 toast.classList.add('bg-green-600');
             } else if(type === 'info') {
-                toast.classList.add('bg-blue-600');
-            }
-            else {
+                 toast.classList.add('bg-blue-600');
+            } else { // 'error'
                 toast.classList.add('bg-red-600');
             }
             
-            toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
-            
+            // Make it visible and slide in
+            toast.classList.remove('translate-y-full', 'opacity-0', 'pointer-events-none'); // Use translate-y-full initially off-screen
+             toast.classList.add('translate-y-0', 'opacity-100');
+
+
+            // Hide after a delay
             setTimeout(() => {
-                toast.classList.add('translate-y-24', 'opacity-0');
+                 toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-full', 'opacity-0'); // Slide down and fade out
+                // Wait for transition to finish before making it non-interactive
                 setTimeout(() => {
                     toast.classList.add('pointer-events-none');
-                }, 300);
+                }, 300); // Match transition duration
             }, 5000); // Hide after 5 seconds
         }
+
         
         function setLoading(button, textEl, spinnerEl, isLoading) {
+             if (!button || !textEl || !spinnerEl) return;
             if (isLoading) {
                 button.disabled = true;
-                textEl.style.opacity = '0';
+                 button.classList.add('opacity-70', 'cursor-not-allowed'); // Visual feedback
+                textEl.classList.add('invisible'); // Hide text but keep space
                 spinnerEl.classList.remove('hidden');
             } else {
                 button.disabled = false;
-                textEl.style.opacity = '1';
+                 button.classList.remove('opacity-70', 'cursor-not-allowed');
+                textEl.classList.remove('invisible');
                 spinnerEl.classList.add('hidden');
             }
         }
 
         function resetModalUI() {
+             if (!authModal) return;
             authView = 'login';
-            updateAuthView();
-            authFullNameInput.value = '';
-            authEmailInput.value = '';
-            authMobileInput.value = '';
-            authPasswordInput.value = '';
-            showMessage('');
+            updateAuthView(); // Updates titles, button text, visibility of fields
+            // Reset input fields if they exist
+             if (authFullNameInput) authFullNameInput.value = '';
+             if (authEmailInput) authEmailInput.value = '';
+             if (authMobileInput) authMobileInput.value = '';
+             if (authPasswordInput) authPasswordInput.value = '';
+            showMessage(''); // Clear any previous messages
         }
         
-        function getFriendlyErrorMessage(errorCode) {
+        
+       function getFriendlyErrorMessage(errorCode) {
+             console.log("Firebase Auth Error Code:", errorCode); // Log the code for debugging
             switch (errorCode) {
                 case 'auth/invalid-email':
                     return 'Please enter a valid email address.';
                 case 'auth/user-not-found':
-                case 'auth/invalid-credential':
-                    return 'Invalid email or password.';
-                case 'auth/wrong-password':
-                    return 'Invalid email or password.';
+                case 'auth/invalid-credential': // This code is often used for wrong email/password combo now
+                    return 'Incorrect email or password.';
+                case 'auth/wrong-password': // Might still appear in some cases
+                    return 'Incorrect password.';
                 case 'auth/email-already-in-use':
                     return 'An account with this email already exists.';
                 case 'auth/weak-password':
                     return 'Password should be at least 6 characters long.';
+                 case 'auth/requires-recent-login':
+                     return 'Please log out and log back in to perform this action.';
+                 case 'auth/too-many-requests':
+                     return 'Too many attempts. Please try again later.';
+                // Add more specific cases as needed based on Firebase documentation
                 default:
-                    console.error("Firebase Auth Error:", errorCode);
-                    return 'An unknown error occurred. Please try again.';
+                    return `An error occurred (${errorCode}). Please try again.`; // Include code for unknown errors
             }
         }
 
+
         // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            assignDOMElements();
-            setupUIEventListeners();
-            initializeAuth();
+             console.log("DOM Loaded. Initializing App.");
+            assignDOMElements(); // Assign elements first
+            setupUIEventListeners(); // Then setup listeners
+            initializeAuth(); // Then initialize Firebase Auth
             showPage('page-home'); // Show home page on load
+             console.log("App Initialized.");
         });
 
     </script>
@@ -869,7 +1027,9 @@
             transition: transform 0.3s ease-in-out;
         }
         .toast-notification {
-            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+             /* Use translate-y-full to start below the viewport */
+             transform: translateY(100%); 
+             transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
         }
         .tab-button {
             transition: color 0.3s ease, border-color 0.3s ease;
@@ -901,8 +1061,17 @@
         }
         /* Sub-navigation dropdown */
         .sub-nav-link {
-            @apply block px-4 py-2 text-sm text-gray-700 hover:bg-amber-100;
+            @apply block px-4 py-2 text-sm text-gray-700 hover:bg-amber-100 rounded; /* Added rounded */
         }
+         /* Style for number input arrows (optional, browser support varies) */
+         input[type=number]::-webkit-inner-spin-button, 
+         input[type=number]::-webkit-outer-spin-button { 
+             -webkit-appearance: none; 
+             margin: 0; 
+         }
+         input[type=number] {
+             -moz-appearance: textfield; /* Firefox */
+         }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -912,37 +1081,44 @@
         <!-- Top bar with Logo and Auth -->
         <nav class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
-                <a href="#" onclick="showPage('page-home')" class="text-2xl font-bold text-slate-800 flex items-center">
+                <a href="#" onclick="showPage('page-home'); return false;" class="text-2xl font-bold text-slate-800 flex items-center">
                     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAVDSURBVHhe7ZxrbxxVFMd/t3t6D+d4bM947Ni+SSdJmwYSCiFBKaWNSkAQEChIEaoP1IcqVSsCIaKqghQk+gNVJVS0f4CU+gNCkRD1AVLVAwklEBINlMRJ+3Ls2B6v57Eze3rXvT1daSckTuwknbY++JNkluyZ+f/cmTln5s4qYRiGYRiGYRiGYRiGYZg/g1pLS8t2sVi8A/g4y/qAcZkXwJ8A7k/K52rL1L2xsaEvAP/k/C53e3s72d/b24uqqqp+hPwgxL4I/tKSc+Ul5e39PDwsFtaWj4F/j/wTZYtA3BtbW13bW1t+fT09JdLS0uPk7wYkC8CPlL9+fn5aRzH23KcZ+U3ge+z/AbwJ/A06AdYlj0L/G/gI4BT8WnZWV1dveXh4eHj4+MfA/8GvAt8yvppYBnwD+BrAGfjt+B7wF4An1N+Ffg3AP0A1wC/Bb4G/B/wY2r75G7vAD4CvD0L/sX+f8DX3wD/GHgd+DvA3wP/DPg49c1T+94G/gr4J/s9P4b/Jvb/mPQrJd2S5fM5AEv/vW3b/l5eXt4I/C57I8sHga+T/L9kQ+h1gN9SviwA/b7/t7a2/r+wsHBfX19/BnwI/CbwF8A32TdgX2XbANyV3gGchX+BfQC+SXn/x9c3gF+B3/J/N+DX1DdP7Xsb+CfgG/Z7Pgj/Tez/QejX2P6PqP0N4D3gL4HPG/AfcL6npgf4S3rG81dbsN+lX2T/GvA/gE/Y/gL2t5L8D8Cfqe2T/f/P2H9Qf69+jP0v5H9P23/I/pL9R2zzP4A/rWP0P8p+F/BbSvYv5Tf1D+qfCvxT/Wf1H9O/Z//R/VvD/t/Vf0r/wH6L/W/W/3n9K5/A/1H/Qf1/6F/49G8R/5Vl/0s/178Z/11K/tL+s1r279Q/rN+y/4X9v/Un+V/Qv1R/Ffs1/Zvq37L/pP0e/R/1v/T/pv/V/5T+Z5R8Jv/j/G0s+V/+WfVvrX/B/i/r/7H+P5L9G/ov6B/Qf+b/Bv/36J+h/0D/K/3P8j/TvyB/n/7J/j9S/q/pX/I/yv9v/Zf2N/Wf0H9D/4n+h/Vf2J/Wf+b/m/TP+a/U/S/7a/xf5/VfV+Ff+V/Gf2V+yfVv+v6B/4v7D+t/V/Vf8J/Zf8b+3f8X9J/2D/P/sf1f8y/Wv2P1HyXvaf1f9W/W/VP2h/3P5v/N+y/4b9JfsL+9/S/8r+t+T9Kv9r9p/Q/6D/R/qf4l/V/0H/oP5r+d/Uf5P/3fpf5R8k76V/Sv9A/Uv8i/Sf1D/V/7X636r/hP0j+2v2v8R/V/R/yv8k+0f6B/S/sP8i/Rf2P1f/C/uv1H+s/zL931L+9+wv6V/Uv5Tf1T+u/6n+pfsfqP9D/4/0X9J/0P9K/33+V/T/1b8A/1dK9u/UP6rfov+V/T/1J/n/y/4B+zfUv1l/MftL+l/q37D/pP0e/V/sf6B/Bv/H9N/G/3lKPiP/vP5f5H8s/8vq/83/m/rfWPdv+0/Qv6N/Wf+R/Uf239C/Yf9Z/7P+U/3vVv+7lfzv61/Jv5H/Vfq/pX95/yn7m+qv8v/R/yr99/Vvq3/D/l/Sv2L/5/W/R/9X+x/Uv6h/Xv/7lf039R8k76v/x/pfpP8n/V/yP8y/Tv94/lf231T/Vfo31J/bf8b+qfpfqv9Z/zX95/pf5H85/c/1X9S/Sv+N/Tv1T+yfpP8A/736h/Vf2v/N/ov6n+L/0v8h/XvqH9D/A/yflL/Vf1f/BfqX63+n/3lKPi/29/Svqv9e/Vv1j/Qfq3+3/pv879P/Av8V/J+l/3l+9+wv8J9T/q3+m/U/wH+j/63+31Xv/fV/wH9r+zfp36A/F36h/VfsP/X/2H9+1b+DfqvVb/D/u/rX63+Qfpfsv+u+r/3/Vv69+zvqf+K/h/8J/T/VP+K/h/9H/Sv0P8y/Y/yn1l/NfsV/G8R/5Vl/yv7N/SvUP9d/Xv2P1H/C/ov7B+n/2l9d6/5X9B/W/2D+nfov1p/rP6jlfzt7W/oH7D/W32//A/7B+S/Uf8A/rWV/R/Qf8X+Ffo/rP9F/Sv1j+xfo/9l/Uf2D1Hyh/WvVP+v/xclv9J+T/+/lf2l/Qv676b/1/7P1f9H/z/S/wT1/wf8f/g/V39L/Vfq+4h+n6V8H2c5/rM/0X9M/tL+X/RfVP+R/bf2f/2L+n/79e0vU/0v2R+h/0H/K/1/W/9B/T/0v+LkV/C/zP/v6T/Zf43W/1/W/4jlfwh+8/yP2T/Q/yv7H9X/+uP/0A9J+yfqP9W/z7S/g313zD+A4RhGIZhGIZhGIZhGIZhGJrTfwI7o1u2yH3yAAAAAElFTkSuQmCC" alt="Elite Science Institute Logo" class="h-10 w-10 mr-2">
                     <span>Elite Science Institute</span>
                 </a>
                 
-                <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-4 md:space-x-6">
                     <!-- Cart Icon -->
-                    <a href="#" onclick="showPage('page-cart')" class="text-gray-600 hover:text-amber-600 font-medium transition duration-300 relative">
+                    <a href="#" onclick="showPage('page-cart'); return false;" class="text-gray-600 hover:text-amber-600 font-medium transition duration-300 relative">
                         <i class="fas fa-shopping-cart text-2xl"></i>
                         <span id="cart-count-badge" class="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
                     </a>
 
-                    <!-- Profile / Auth -->
+                    <!-- Profile / Auth Trigger -->
                     <div class="relative">
-                        <div id="user-profile-trigger" class="flex items-center cursor-pointer space-x-2">
-                            <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-300" id="avatar-container">
-                                <img id="user-avatar" class="w-full h-full object-cover hidden" alt="User Avatar">
+                        <!-- Clickable Trigger Area -->
+                        <div id="user-profile-trigger" class="flex items-center cursor-pointer space-x-2 p-1 rounded-md hover:bg-gray-100">
+                             <!-- Avatar/Icon Container -->
+                            <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-300 flex-shrink-0" id="avatar-container">
+                                <img id="user-avatar" class="w-full h-full object-cover hidden" alt="User Avatar" src="https://placehold.co/40x40/ccc/999?text=U">
                                 <i id="user-icon" class="fas fa-user text-xl text-slate-500"></i>
                                 <div id="avatar-spinner" class="hidden w-6 h-6 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
                             </div>
-                            <span id="user-display-name" class="text-sm text-slate-700 font-semibold hidden md:block max-w-[120px] truncate">Profile</span>
+                            <!-- Display Name (optional, hidden on small screens) -->
+                            <span id="user-display-name" class="text-sm text-slate-700 font-semibold hidden md:block max-w-[100px] truncate">Profile</span>
                         </div>
                         
                         <!-- Profile Dropdown -->
-                        <div id="profile-dropdown" class="absolute top-full right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-20 hidden opacity-0 transform scale-95">
+                        <div id="profile-dropdown" class="absolute top-full right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-20 hidden opacity-0 transform scale-95 origin-top-right">
                             
                             <!-- Logged-in State -->
                             <div id="logged-in-dropdown" class="hidden">
+                                <div class="px-4 py-2 border-b">
+                                     <p class="text-sm font-medium text-gray-900 truncate" id="dropdown-user-name">User Name</p>
+                                     <p class="text-xs text-gray-500 truncate" id="dropdown-user-email">user@example.com</p>
+                                </div>
                                 <div id="verification-status" class="px-4 py-2 border-b hidden">
                                     <p class="text-xs text-yellow-800 bg-yellow-100 p-2 rounded-md">Email not verified.</p>
-                                    <button id="resend-verification-btn" class="text-xs text-blue-600 hover:underline mt-1">Resend link</button>
+                                    <button id="resend-verification-btn" class="text-xs text-blue-600 hover:underline mt-1 w-full text-left">Resend link</button>
                                 </div>
                                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 profile-dropdown-item">Your Info</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 profile-dropdown-item">Your Orders</a>
@@ -950,31 +1126,22 @@
                                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 profile-dropdown-item">Rewards</a>
                                 <label for="avatar-upload" class="block px-4 py-2 text-sm text-gray-700 profile-dropdown-item cursor-pointer">Change Picture</label>
                                 <input type="file" id="avatar-upload" class="hidden" accept="image/*">
-                                <div class="border-t border-gray-100"></div>
-                                <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 profile-dropdown-item">Logout</button>
+                                <div class="border-t border-gray-100 my-1"></div>
+                                <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 profile-dropdown-item rounded-b-md">Logout</button>
                             </div>
 
                             <!-- Logged-out State -->
                             <div id="logged-out-dropdown">
-                                <button id="profile-login-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 profile-dropdown-item">
+                                <button id="profile-login-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 profile-dropdown-item rounded-md">
                                     Login / Sign Up
                                 </button>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Desktop-only Auth Button (Fallback) -->
-                    <button id="login-btn" class="hidden bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-800 transition-all duration-300 md:flex items-center space-x-2 shadow-sm hover:shadow-md">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span>Login / Sign Up</span>
-                    </button>
-                    <div id="user-profile" class="hidden relative">
-                        <!-- This div is kept for the auth logic to target but is replaced by the new dropdown -->
-                    </div>
-
                     <!-- Mobile Menu Button -->
                     <div class="md:hidden">
-                        <button id="mobile-menu-button" class="text-slate-700 focus:outline-none">
+                        <button id="mobile-menu-button" class="text-slate-700 focus:outline-none p-2 -mr-2">
                             <i class="fas fa-bars text-2xl"></i>
                         </button>
                     </div>
@@ -982,11 +1149,11 @@
             </div>
         </nav>
 
-        <!-- Golden Navigation Strip -->
+       <!-- Golden Navigation Strip -->
         <div class="bg-amber-500 shadow-md">
-            <div class="container mx-auto px-6 hidden md:flex justify-center items-center space-x-4 h-14">
+            <div class="container mx-auto px-6 hidden md:flex justify-center items-center space-x-4 h-14 overflow-x-auto whitespace-nowrap">
                 
-                <a href="#" onclick="showPage('page-home')" class="text-white hover:bg-amber-600 px-4 py-4 font-semibold transition duration-300">Home</a>
+                <a href="#" onclick="showPage('page-home'); return false;" class="text-white hover:bg-amber-600 px-4 py-4 font-semibold transition duration-300">Home</a>
 
                 <!-- Our Courses Dropdown -->
                 <div class="relative group">
@@ -994,10 +1161,10 @@
                         <span>Our Courses</span>
                         <i class="fas fa-chevron-down text-xs ml-2"></i>
                     </button>
-                    <div class="absolute top-full left-0 mt-0 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block">
-                        <a href="#" onclick="showPage('page-courses')" class="sub-nav-link">CSIR NET</a>
-                        <a href="#" onclick="showPage('page-courses')" class="sub-nav-link">GATE Life science</a>
-                        <a href="#" onclick="showPage('page-courses')" class="sub-nav-link">IIT-JAM</a>
+                    <div class="absolute top-full left-0 mt-0 min-w-max w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block origin-top-left">
+                        <a href="#" onclick="showPage('page-courses'); return false;" class="sub-nav-link">CSIR NET</a>
+                        <a href="#" onclick="showPage('page-courses'); return false;" class="sub-nav-link">GATE Life science</a>
+                        <a href="#" onclick="showPage('page-courses'); return false;" class="sub-nav-link">IIT-JAM</a>
                     </div>
                 </div>
 
@@ -1007,10 +1174,10 @@
                         <span>Test Series</span>
                         <i class="fas fa-chevron-down text-xs ml-2"></i>
                     </button>
-                    <div class="absolute top-full left-0 mt-0 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block">
-                        <a href="#" onclick="showPage('page-test-series')" class="sub-nav-link">All India Mock Test</a>
-                        <a href="#" onclick="showPage('page-test-series')" class="sub-nav-link">Topic-wise Tests</a>
-                        <a href="#" onclick="showPage('page-test-series')" class="sub-nav-link">Previous Year Papers</a>
+                    <div class="absolute top-full left-0 mt-0 min-w-max w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block origin-top-left">
+                        <a href="#" onclick="showPage('page-test-series'); return false;" class="sub-nav-link">All India Mock Test</a>
+                        <a href="#" onclick="showPage('page-test-series'); return false;" class="sub-nav-link">Topic-wise Tests</a>
+                        <a href="#" onclick="showPage('page-test-series'); return false;" class="sub-nav-link">Previous Year Papers</a>
                     </div>
                 </div>
 
@@ -1020,9 +1187,9 @@
                         <span>Merchandise</span>
                         <i class="fas fa-chevron-down text-xs ml-2"></i>
                     </button>
-                    <div class="absolute top-full left-0 mt-0 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block">
-                        <a href="#" onclick="showPage('page-merchandise')" class="sub-nav-link">T-Shirts</a>
-                        <a href="#" onclick="showPage('page-merchandise')" class="sub-nav-link">Mugs</a>
+                    <div class="absolute top-full left-0 mt-0 min-w-max w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block origin-top-left">
+                        <a href="#" onclick="showPage('page-merchandise'); return false;" class="sub-nav-link">T-Shirts</a>
+                        <a href="#" onclick="showPage('page-merchandise'); return false;" class="sub-nav-link">Mugs</a>
                     </div>
                 </div>
 
@@ -1032,9 +1199,9 @@
                         <span>PhD Positions</span>
                         <i class="fas fa-chevron-down text-xs ml-2"></i>
                     </button>
-                    <div class="absolute top-full left-0 mt-0 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block">
-                        <a href="#" onclick="showPage('page-phd')" class="sub-nav-link">India</a>
-                        <a href="#" onclick="showPage('page-phd')" class="sub-nav-link">Abroad</a>
+                    <div class="absolute top-full left-0 mt-0 min-w-max w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block origin-top-left">
+                        <a href="#" onclick="showPage('page-phd'); return false;" class="sub-nav-link">India</a>
+                        <a href="#" onclick="showPage('page-phd'); return false;" class="sub-nav-link">Abroad</a>
                     </div>
                 </div>
 
@@ -1044,10 +1211,10 @@
                         <span>Research News</span>
                         <i class="fas fa-chevron-down text-xs ml-2"></i>
                     </button>
-                    <div class="absolute top-full left-0 mt-0 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block">
-                        <a href="#" onclick="showPage('page-news')" class="sub-nav-link">Daily</a>
-                        <a href="#" onclick="showPage('page-news')" class="sub-nav-link">Weekly</a>
-                        <a href="#" onclick="showPage('page-news')" class="sub-nav-link">Monthly</a>
+                    <div class="absolute top-full left-0 mt-0 min-w-max w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden group-hover:block origin-top-left">
+                        <a href="#" onclick="showPage('page-news'); return false;" class="sub-nav-link">Daily</a>
+                        <a href="#" onclick="showPage('page-news'); return false;" class="sub-nav-link">Weekly</a>
+                        <a href="#" onclick="showPage('page-news'); return false;" class="sub-nav-link">Monthly</a>
                     </div>
                 </div>
 
@@ -1055,14 +1222,15 @@
         </div>
 
         <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden border-t">
-            <a href="#" onclick="showPage('page-home')" class="block py-2.5 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Home</a>
-            <a href="#" onclick="showPage('page-courses')" class="block py-2.5 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Our Courses</a>
-            <a href="#" onclick="showPage('page-test-series')" class="block py-2.5 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Test Series</a>
-            <a href="#" onclick="showPage('page-merchandise')" class="block py-2.5 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Merchandise</a>
-            <a href="#" onclick="showPage('page-phd')" class="block py-2.5 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">PhD Positions</a>
-            <a href="#" onclick="showPage('page-news')" class="block py-2.5 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Research News</a>
-            <button id="mobile-login-btn" class="w-full mt-3 bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-800 transition duration-300">Login / Sign Up</button>
+        <div id="mobile-menu" class="hidden md:hidden border-t bg-white shadow-lg">
+            <a href="#" onclick="showPage('page-home'); document.getElementById('mobile-menu').classList.add('hidden'); return false;" class="block py-3 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Home</a>
+            <a href="#" onclick="showPage('page-courses'); document.getElementById('mobile-menu').classList.add('hidden'); return false;" class="block py-3 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Our Courses</a>
+            <a href="#" onclick="showPage('page-test-series'); document.getElementById('mobile-menu').classList.add('hidden'); return false;" class="block py-3 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Test Series</a>
+            <a href="#" onclick="showPage('page-merchandise'); document.getElementById('mobile-menu').classList.add('hidden'); return false;" class="block py-3 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Merchandise</a>
+            <a href="#" onclick="showPage('page-phd'); document.getElementById('mobile-menu').classList.add('hidden'); return false;" class="block py-3 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">PhD Positions</a>
+            <a href="#" onclick="showPage('page-news'); document.getElementById('mobile-menu').classList.add('hidden'); return false;" class="block py-3 px-4 text-base text-slate-700 hover:bg-slate-100 rounded-md">Research News</a>
+             <div class="border-t my-2"></div>
+            <button id="mobile-login-btn" class="w-full text-left mt-1 mb-2 bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">Login / Sign Up</button>
         </div>
     </header>
 
@@ -1076,7 +1244,7 @@
                 <div class="container mx-auto px-6 py-32 md:py-48 text-center">
                     <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">Shaping the Future of Science Professionals</h1>
                     <p class="text-lg md:text-xl text-slate-200 mb-8 max-w-3xl mx-auto">Your journey to a successful career in life sciences and biotechnology begins here. Join Elite Science Institute to achieve your academic goals.</p>
-                    <a href="#" onclick="showPage('page-courses')" class="bg-amber-500 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-amber-600 transition duration-300 transform hover:scale-105 shadow-lg">Explore Our Courses</a>
+                    <a href="#" onclick="showPage('page-courses'); return false;" class="bg-amber-500 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-amber-600 transition duration-300 transform hover:scale-105 shadow-lg inline-block">Explore Our Courses</a>
                 </div>
             </section>
 
@@ -1089,7 +1257,7 @@
                     </div>
                     <div class="flex flex-col md:flex-row items-center gap-12">
                         <div class="md:w-1/2">
-                            <img src="https://placehold.co/600x400/e2e8f0/334155?text=Our+Mission" alt="About Us Image" class="rounded-xl shadow-xl w-full">
+                            <img src="https://placehold.co/600x400/e2e8f0/334155?text=Our+Mission" alt="About Us Image" class="rounded-xl shadow-xl w-full" loading="lazy">
                         </div>
                         <div class="md:w-1/2">
                             <h3 class="text-2xl font-semibold text-slate-800 mb-4">Our Vision & Mission</h3>
@@ -1115,7 +1283,7 @@
                         
                         <!-- Course Card 1 -->
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/3b82f6/ffffff?text=CSIR-UGC+NET/JRF" alt="CSIR-UGC NET/JRF" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/3b82f6/ffffff?text=CSIR-UGC+NET/JRF" alt="CSIR-UGC NET/JRF" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
                                 <h3 class="text-xl font-bold text-slate-800 mb-2">CSIR-UGC NET/JRF</h3>
                                 <p class="text-base mb-4 flex-grow">A comprehensive program for the prestigious CSIR-UGC NET exam.</p>
@@ -1141,7 +1309,7 @@
                         
                         <!-- Course Card 2 -->
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/10b981/ffffff?text=IIT-JAM+Biotech" alt="IIT-JAM Biotechnology" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/10b981/ffffff?text=IIT-JAM+Biotech" alt="IIT-JAM Biotechnology" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
                                 <h3 class="text-xl font-bold text-slate-800 mb-2">IIT-JAM Biotechnology</h3>
                                 <p class="text-base mb-4 flex-grow">Specialized coaching for the IIT-JAM Biotechnology entrance.</p>
@@ -1167,7 +1335,7 @@
 
                         <!-- Course Card 3 -->
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/8b5cf6/ffffff?text=DBT-JRF" alt="DBT-JRF" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/8b5cf6/ffffff?text=DBT-JRF" alt="DBT-JRF" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
                                 <h3 class="text-xl font-bold text-slate-800 mb-2">DBT-JRF Program</h3>
                                 <p class="text-base mb-4 flex-grow">Focused preparation for the DBT-JRF examination.</p>
@@ -1191,10 +1359,13 @@
                             </div>
                         </div>
                     </div>
+                     <div class="text-center mt-12">
+                         <a href="#" onclick="showPage('page-courses'); return false;" class="text-blue-600 font-semibold hover:underline text-lg">View All Courses &rarr;</a>
+                    </div>
                 </div>
             </section>
 
-            <!-- PhD Positions Section (Home) -->
+            <!-- PhD Positions Section (Home Preview) -->
             <section id="phd-home" class="py-20 md:py-24 bg-white">
                 <div class="container mx-auto px-6">
                     <div class="text-center mb-16">
@@ -1202,100 +1373,59 @@
                         <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Explore curated PhD opportunities in India and around the world.</p>
                     </div>
                     <div class="max-w-4xl mx-auto">
-                        <div class="border-b border-gray-300 mb-6">
-                            <nav class="flex space-x-8" aria-label="Tabs">
-                                <button class="tab-button phd-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent active" data-tab="india">India</button>
-                                <button class="tab-button phd-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="abroad">Abroad</button>
-                            </nav>
-                        </div>
-                        <div id="phd-india" class="phd-tab-content space-y-4">
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                         <!-- Simplified view for homepage, showing only a couple -->
+                         <div class="space-y-4">
+                            <div class="bg-gray-50 p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-gray-200">
                                 <div>
                                     <h4 class="font-bold text-lg text-slate-800">Indian Institute of Science (IISc), Bangalore</h4>
                                     <p class="text-gray-600">Area: Molecular Biology & Genetics</p>
                                 </div>
                                 <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
                             </div>
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h4 class="font-bold text-lg text-slate-800">Tata Institute of Fundamental Research (TIFR), Mumbai</h4>
-                                    <p class="text-gray-600">Area: Neuroscience & Cell Biology</p>
-                                </div>
-                                <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
-                            </div>
-                        </div>
-                        <div id="phd-abroad" class="phd-tab-content space-y-4 hidden">
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div class="bg-gray-50 p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-gray-200">
                                 <div>
                                     <h4 class="font-bold text-lg text-slate-800">Harvard University, USA</h4>
                                     <p class="text-gray-600">Area: Genetics and Genomics</p>
                                 </div>
                                 <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
                             </div>
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h4 class="font-bold text-lg text-slate-800">Max Planck Institute, Germany</h4>
-                                    <p class="text-gray-600">Area: Plant Biology & Epigenetics</p>
-                                </div>
-                                <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
-                            </div>
+                        </div>
+                         <div class="text-center mt-12">
+                            <a href="#" onclick="showPage('page-phd'); return false;" class="text-blue-600 font-semibold hover:underline text-lg">View All PhD Positions &rarr;</a>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Research News Section (Home) -->
+            <!-- Research News Section (Home Preview) -->
             <section id="news-home" class="py-20 md:py-24 bg-slate-50">
                 <div class="container mx-auto px-6">
                     <div class="text-center mb-16">
-                        <h2 class="text-3xl md:text-4xl font-bold section-title">Research News</h2>
-                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Stay updated with the latest breakthroughs in the world of science.</p>
+                        <h2 class="text-3xl md:text-4xl font-bold section-title">Latest Research News</h2>
+                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Stay updated with recent breakthroughs in the world of science.</p>
                     </div>
                     <div class="max-w-5xl mx-auto">
-                        <div class="border-b border-gray-300 mb-8">
-                            <nav class="flex space-x-8" aria-label="Tabs">
-                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent active" data-tab="daily">Daily</button>
-                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="weekly">Weekly</button>
-                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="monthly">Monthly</button>
-                            </nav>
-                        </div>
-                        <div id="news-daily" class="news-tab-content grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Simplified view for homepage -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/34d399/ffffff?text=CRISPR+Advancement" class="w-full h-56 object-cover" alt="News Image">
+                                <img src="https://placehold.co/600x400/34d399/ffffff?text=CRISPR+Advancement" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
                                 <div class="p-6">
                                     <h3 class="font-bold text-xl mb-2 text-slate-800">New CRISPR technique shows promise in gene editing</h3>
-                                    <p class="text-gray-600 mb-4">Researchers have developed a new method that increases the efficiency and accuracy of CRISPR-Cas9...</p>
+                                    <p class="text-gray-600 mb-4 line-clamp-3">Researchers have developed a new method that increases the efficiency and accuracy of CRISPR-Cas9 gene editing, potentially opening doors for treating genetic diseases more effectively...</p>
                                     <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
                                 </div>
                             </div>
                             <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/f87171/ffffff?text=Cancer+Research" class="w-full h-56 object-cover" alt="News Image">
+                                <img src="https://placehold.co/600x400/f87171/ffffff?text=Cancer+Research" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
                                 <div class="p-6">
-                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Breakthrough in Early Cancer Detection</h3>
-                                    <p class="text-gray-600 mb-4">A new blood test has been shown to detect multiple types of cancer at an early stage with high accuracy...</p>
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Breakthrough in Early Cancer Detection via Blood Test</h3>
+                                    <p class="text-gray-600 mb-4 line-clamp-3">A new blood test has demonstrated high accuracy in detecting multiple types of cancer at an early stage, offering hope for improved patient outcomes through earlier intervention...</p>
                                     <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
                                 </div>
                             </div>
                         </div>
-                        <div id="news-weekly" class="news-tab-content hidden grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/fbbf24/ffffff?text=AI+in+Drug+Discovery" class="w-full h-56 object-cover" alt="News Image">
-                                <div class="p-6">
-                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Weekly Roundup: AI Accelerates Drug Discovery</h3>
-                                    <p class="text-gray-600 mb-4">This week's major news includes a breakthrough in using AI to predict protein folding and drug interactions...</p>
-                                    <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="news-monthly" class="news-tab-content hidden grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/60a5fa/ffffff?text=Climate+Change+Impact" class="w-full h-56 object-cover" alt="News Image">
-                                <div class="p-6">
-                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Monthly Digest: Impact of Climate Change on Biodiversity</h3>
-                                    <p class="text-gray-600 mb-4">A comprehensive look at research published this month on how rising temperatures affect global ecosystems...</p>
-                                    <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
-                                </div>
-                            </div>
+                         <div class="text-center mt-12">
+                            <a href="#" onclick="showPage('page-news'); return false;" class="text-blue-600 font-semibold hover:underline text-lg">View All News &rarr;</a>
                         </div>
                     </div>
                 </div>
@@ -1309,22 +1439,22 @@
                         <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">What sets us apart on your path to success.</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                             <i class="fas fa-user-tie text-5xl text-blue-600 mb-5"></i>
                             <h4 class="text-xl font-semibold mb-2 text-slate-800">Expert Faculty</h4>
                             <p>Learn from PhDs and post-doctorates from renowned universities.</p>
                         </div>
-                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                             <i class="fas fa-book-open text-5xl text-blue-600 mb-5"></i>
                             <h4 class="text-xl font-semibold mb-2 text-slate-800">Updated Material</h4>
                             <p>Comprehensive and well-researched study material, updated regularly.</p>
                         </div>
-                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                             <i class="fas fa-clipboard-check text-5xl text-blue-600 mb-5"></i>
                             <h4 class="text-xl font-semibold mb-2 text-slate-800">Regular Tests</h4>
                             <p>Mock tests and performance analysis to track your progress effectively.</p>
                         </div>
-                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm">
+                        <div class="p-8 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                             <i class="fas fa-trophy text-5xl text-blue-600 mb-5"></i>
                             <h4 class="text-xl font-semibold mb-2 text-slate-800">Proven Results</h4>
                             <p>A history of producing top rankers in national competitive exams.</p>
@@ -1350,12 +1480,12 @@
                             <div class="p-4">
                                 <i class="fas fa-envelope text-4xl text-blue-600 mb-4"></i>
                                 <h4 class="font-semibold text-lg text-slate-800">Email Us</h4>
-                                <p class="hover:text-blue-600"><a href="mailto:info@elitescience.com">info@elitescience.com</a></p>
+                                <p><a href="mailto:info@elitescience.com" class="hover:text-blue-600 transition-colors">info@elitescience.com</a></p>
                             </div>
                             <div class="p-4">
                                 <i class="fas fa-phone-alt text-4xl text-blue-600 mb-4"></i>
                                 <h4 class="font-semibold text-lg text-slate-800">Call Us</h4>
-                                <p class="hover:text-blue-600"><a href="tel:+919876543210">+91 98765 43210</a></p>
+                                <p><a href="tel:+919876543210" class="hover:text-blue-600 transition-colors">+91 98765 43210</a></p>
                             </div>
                         </div>
                     </div>
@@ -1365,21 +1495,26 @@
         
         <!-- PAGE: Our Courses -->
         <div id="page-courses" class="page-content hidden">
-             <!-- Re-using the courses section from Home -->
+             <!-- Re-using the courses section from Home, maybe add more detail -->
             <section id="courses-page" class="py-20 md:py-24 bg-slate-50">
                 <div class="container mx-auto px-6">
                     <div class="text-center mb-16">
                         <h2 class="text-3xl md:text-4xl font-bold section-title">Our Premier Courses</h2>
-                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Comprehensive programs designed for guaranteed success.</p>
+                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Comprehensive programs designed for guaranteed success in major life science examinations.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         
                         <!-- Course Card 1 -->
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/3b82f6/ffffff?text=CSIR-UGC+NET/JRF" alt="CSIR-UGC NET/JRF" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/3b82f6/ffffff?text=CSIR-UGC+NET/JRF" alt="CSIR-UGC NET/JRF" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
-                                <h3 class="text-xl font-bold text-slate-800 mb-2">CSIR-UGC NET/JRF</h3>
-                                <p class="text-base mb-4 flex-grow">A comprehensive program covering all units of Life Sciences syllabus for the prestigious CSIR-UGC NET exam.</p>
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">CSIR-UGC NET/JRF (Life Sciences)</h3>
+                                <p class="text-base mb-4 flex-grow">Our flagship program covering all 13 units of the CSIR-UGC NET Life Sciences syllabus. Includes comprehensive study material, regular tests, and doubt clearing sessions.</p>
+                                <ul class="text-sm list-disc list-inside mb-4 text-gray-600">
+                                     <li>Expert Faculty</li>
+                                     <li>Updated Syllabus Coverage</li>
+                                     <li>Online & Offline Batches</li>
+                                </ul>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹25,000</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
@@ -1402,36 +1537,77 @@
                         
                         <!-- Course Card 2 -->
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/10b981/ffffff?text=IIT-JAM+Biotech" alt="IIT-JAM Biotechnology" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/10b981/ffffff?text=GATE+Life+Science" alt="GATE Life Science / Biotech" class="w-full h-48 object-cover" loading="lazy">
+                            <div class="p-6 flex-grow flex flex-col">
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">GATE (Life Sc. / Biotech)</h3>
+                                <p class="text-base mb-4 flex-grow">Prepare for GATE Life Sciences (XL) and Biotechnology (BT) papers. Focus on core concepts, problem-solving techniques, and general aptitude.</p>
+                                 <ul class="text-sm list-disc list-inside mb-4 text-gray-600">
+                                     <li>Section-wise Modules</li>
+                                     <li>Practice Question Banks</li>
+                                     <li>Mock Tests Included</li>
+                                </ul>
+                                <p class="text-3xl font-bold text-blue-700 mb-6">₹20,000</p>
+                                <div class="mt-auto space-y-3">
+                                    <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
+                                            data-id="course-gate-1" 
+                                            data-name="GATE (Life Sc. / Biotech)" 
+                                            data-price="20000"
+                                            data-image="https://placehold.co/100x100/10b981/ffffff?text=GATE">
+                                        <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                                    </button>
+                                    <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
+                                            data-id="course-gate-1" 
+                                            data-name="GATE (Life Sc. / Biotech)" 
+                                            data-price="20000"
+                                            data-image="https://placehold.co/100x100/10b981/ffffff?text=GATE">
+                                        Buy Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Course Card 3 -->
+                        <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                            <img src="https://placehold.co/400x250/a855f7/ffffff?text=IIT-JAM+Biotech" alt="IIT-JAM Biotechnology" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
                                 <h3 class="text-xl font-bold text-slate-800 mb-2">IIT-JAM Biotechnology</h3>
-                                <p class="text-base mb-4 flex-grow">Specialized coaching for the IIT-JAM Biotechnology entrance, paving your way to top MSc programs in India.</p>
+                                <p class="text-base mb-4 flex-grow">Specialized coaching for the IIT-JAM Biotechnology entrance, paving your way to top MSc programs in IITs, IISc, and NITs.</p>
+                                <ul class="text-sm list-disc list-inside mb-4 text-gray-600">
+                                     <li>Targeted Syllabus</li>
+                                     <li>Focus on Fundamentals</li>
+                                     <li>JAM Pattern Tests</li>
+                                </ul>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹18,000</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
                                             data-id="course-iitjam-1" 
                                             data-name="IIT-JAM Biotechnology" 
                                             data-price="18000"
-                                            data-image="https://placehold.co/100x100/10b981/ffffff?text=IIT-JAM">
+                                            data-image="https://placehold.co/100x100/a855f7/ffffff?text=IIT-JAM">
                                         <i class="fas fa-cart-plus mr-2"></i>Add to Cart
                                     </button>
                                     <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
                                             data-id="course-iitjam-1" 
                                             data-name="IIT-JAM Biotechnology" 
                                             data-price="18000"
-                                            data-image="https://placehold.co/100x100/10b981/ffffff?text=IIT-JAM">
+                                            data-image="https://placehold.co/100x100/a855f7/ffffff?text=IIT-JAM">
                                         Buy Now
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Course Card 3 -->
+                        <!-- Course Card 4 (Added DBT) -->
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/8b5cf6/ffffff?text=DBT-JRF" alt="DBT-JRF" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/8b5cf6/ffffff?text=DBT-JRF" alt="DBT-JRF" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
                                 <h3 class="text-xl font-bold text-slate-800 mb-2">DBT-JRF Program</h3>
-                                <p class="text-base mb-4 flex-grow">Focused preparation for the DBT-JRF examination, unlocking opportunities in top research institutions.</p>
+                                <p class="text-base mb-4 flex-grow">Focused preparation for the DBT-JRF examination, unlocking PhD opportunities in top research institutions across India.</p>
+                                 <ul class="text-sm list-disc list-inside mb-4 text-gray-600">
+                                     <li>Biotechnology Focus</li>
+                                     <li>Aptitude Section Prep</li>
+                                     <li>Interview Guidance</li>
+                                </ul>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹22,000</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
@@ -1451,6 +1627,7 @@
                                 </div>
                             </div>
                         </div>
+                         <!-- Add more course cards as needed -->
                     </div>
                 </div>
             </section>
@@ -1462,27 +1639,27 @@
                 <div class="container mx-auto px-6">
                     <div class="text-center mb-16">
                         <h2 class="text-3xl md:text-4xl font-bold section-title">Online Test Series</h2>
-                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Evaluate your preparation with our comprehensive test series, designed to mirror the actual exam.</p>
+                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Evaluate your preparation with our comprehensive test series, designed to mirror the actual exam patterns and difficulty levels.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/f59e0b/ffffff?text=All+India+Mock+Test" alt="All India Mock Test" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/f59e0b/ffffff?text=All+India+Mock+Test" alt="All India Mock Test" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
-                                <h3 class="text-xl font-bold text-slate-800 mb-2">All India Mock Test</h3>
-                                <p class="text-base mb-4 flex-grow">Experience the real exam environment with our All India level mock tests and detailed performance analysis.</p>
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">All India Mock Test Series</h3>
+                                <p class="text-base mb-4 flex-grow">Experience the real exam environment. Includes multiple full-length mock tests for CSIR NET / GATE / IIT-JAM with detailed performance analysis and All India Ranking.</p>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹1,500</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
                                             data-id="ts-mock-1" 
-                                            data-name="All India Mock Test" 
+                                            data-name="All India Mock Test Series" 
                                             data-price="1500"
                                             data-image="https://placehold.co/100x100/f59e0b/ffffff?text=Mock">
                                         <i class="fas fa-cart-plus mr-2"></i>Add to Cart
                                     </button>
                                     <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
                                             data-id="ts-mock-1" 
-                                            data-name="All India Mock Test" 
+                                            data-name="All India Mock Test Series" 
                                             data-price="1500"
                                             data-image="https://placehold.co/100x100/f59e0b/ffffff?text=Mock">
                                         Buy Now
@@ -1492,22 +1669,22 @@
                         </div>
                         
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/ec4899/ffffff?text=Topic-wise+Tests" alt="Topic-wise Tests" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/ec4899/ffffff?text=Topic-wise+Tests" alt="Topic-wise Tests" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
-                                <h3 class="text-xl font-bold text-slate-800 mb-2">Topic-wise Tests</h3>
-                                <p class="text-base mb-4 flex-grow">Strengthen your concepts with an extensive bank of tests focused on individual topics from the syllabus.</p>
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">Topic-wise Test Bank</h3>
+                                <p class="text-base mb-4 flex-grow">Strengthen your concepts with an extensive bank of tests (over 5000+ questions) focused on individual topics from the CSIR NET & GATE syllabus. Detailed solutions provided.</p>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹2,500</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
                                             data-id="ts-topic-1" 
-                                            data-name="Topic-wise Tests" 
+                                            data-name="Topic-wise Test Bank" 
                                             data-price="2500"
                                             data-image="https://placehold.co/100x100/ec4899/ffffff?text=Topic">
                                         <i class="fas fa-cart-plus mr-2"></i>Add to Cart
                                     </button>
                                     <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
                                             data-id="ts-topic-1" 
-                                            data-name="Topic-wise Tests" 
+                                            data-name="Topic-wise Test Bank" 
                                             data-price="2500"
                                             data-image="https://placehold.co/100x100/ec4899/ffffff?text=Topic">
                                         Buy Now
@@ -1517,22 +1694,22 @@
                         </div>
                         
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/ef4444/ffffff?text=Previous+Year+Papers" alt="Previous Year Papers" class="w-full h-48 object-cover">
+                            <img src="https://placehold.co/400x250/ef4444/ffffff?text=Previous+Year+Papers" alt="Previous Year Papers" class="w-full h-48 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
-                                <h3 class="text-xl font-bold text-slate-800 mb-2">Previous Year Papers</h3>
-                                <p class="text-base mb-4 flex-grow">Practice with an exhaustive collection of solved papers from previous years to understand the exam pattern.</p>
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">Previous Year Papers (Solved)</h3>
+                                <p class="text-base mb-4 flex-grow">Practice with an exhaustive collection of solved papers (last 10 years) for CSIR NET, GATE, and IIT-JAM to understand the exam pattern and question trends.</p>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹1,000</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
                                             data-id="ts-pyp-1" 
-                                            data-name="Previous Year Papers" 
+                                            data-name="Previous Year Papers (Solved)" 
                                             data-price="1000"
                                             data-image="https://placehold.co/100x100/ef4444/ffffff?text=PYP">
                                         <i class="fas fa-cart-plus mr-2"></i>Add to Cart
                                     </button>
                                     <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
                                             data-id="ts-pyp-1" 
-                                            data-name="Previous Year Papers" 
+                                            data-name="Previous Year Papers (Solved)" 
                                             data-price="1000"
                                             data-image="https://placehold.co/100x100/ef4444/ffffff?text=PYP">
                                         Buy Now
@@ -1551,28 +1728,28 @@
                 <div class="container mx-auto px-6">
                     <div class="text-center mb-16">
                         <h2 class="text-3xl md:text-4xl font-bold section-title">Our Merchandise</h2>
-                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Show your ESI pride with our official gear.</p>
+                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Show your ESI pride with our official gear. High-quality items perfect for students and alumni.</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                         
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/3b82f6/ffffff?text=ESI+T-Shirt" alt="ESI T-Shirt" class="w-full h-64 object-cover">
+                            <img src="https://placehold.co/400x300/3b82f6/ffffff?text=ESI+T-Shirt+Blue" alt="ESI T-Shirt" class="w-full h-64 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
-                                <h3 class="text-xl font-bold text-slate-800 mb-2">ESI "Future of Science" T-Shirt</h3>
-                                <p class="text-base mb-4 flex-grow">High-quality 100% cotton. Available in S, M, L, XL.</p>
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">ESI "Future Science" T-Shirt (Blue)</h3>
+                                <p class="text-base mb-4 flex-grow">Premium 100% bio-wash cotton. Comfortable fit. Available in S, M, L, XL, XXL.</p>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹799</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
-                                            data-id="merch-tshirt-1" 
-                                            data-name="ESI T-Shirt" 
+                                            data-id="merch-tshirt-blue-1" 
+                                            data-name='ESI T-Shirt (Blue)' 
                                             data-price="799"
                                             data-image="https://placehold.co/100x100/3b82f6/ffffff?text=T-Shirt">
                                         <i class="fas fa-cart-plus mr-2"></i>Add to Cart
                                     </button>
                                     <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
-                                            data-id="merch-tshirt-1" 
-                                            data-name="ESI T-Shirt" 
+                                            data-id="merch-tshirt-blue-1" 
+                                            data-name='ESI T-Shirt (Blue)' 
                                             data-price="799"
                                             data-image="https://placehold.co/100x100/3b82f6/ffffff?text=T-Shirt">
                                         Buy Now
@@ -1582,10 +1759,35 @@
                         </div>
                         
                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                            <img src="https://placehold.co/400x250/10b981/ffffff?text=ESI+Mug" alt="ESI Mug" class="w-full h-64 object-cover">
+                            <img src="https://placehold.co/400x300/1f2937/ffffff?text=ESI+T-Shirt+Black" alt="ESI T-Shirt Black" class="w-full h-64 object-cover" loading="lazy">
+                            <div class="p-6 flex-grow flex flex-col">
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">ESI Logo T-Shirt (Black)</h3>
+                                <p class="text-base mb-4 flex-grow">Classic black tee with ESI logo. 100% cotton. Available in S, M, L, XL, XXL.</p>
+                                <p class="text-3xl font-bold text-blue-700 mb-6">₹799</p>
+                                <div class="mt-auto space-y-3">
+                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
+                                            data-id="merch-tshirt-black-1" 
+                                            data-name='ESI T-Shirt (Black)' 
+                                            data-price="799"
+                                            data-image="https://placehold.co/100x100/1f2937/ffffff?text=T-Shirt">
+                                        <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                                    </button>
+                                    <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
+                                            data-id="merch-tshirt-black-1" 
+                                            data-name='ESI T-Shirt (Black)' 
+                                            data-price="799"
+                                            data-image="https://placehold.co/100x100/1f2937/ffffff?text=T-Shirt">
+                                        Buy Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                            <img src="https://placehold.co/400x300/10b981/ffffff?text=ESI+Mug" alt="ESI Mug" class="w-full h-64 object-cover" loading="lazy">
                             <div class="p-6 flex-grow flex flex-col">
                                 <h3 class="text-xl font-bold text-slate-800 mb-2">ESI Ceramic Mug</h3>
-                                <p class="text-base mb-4 flex-grow">15oz (440ml) ceramic mug. Dishwasher and microwave safe.</p>
+                                <p class="text-base mb-4 flex-grow">15oz (440ml) sturdy ceramic mug. Features ESI logo. Dishwasher and microwave safe.</p>
                                 <p class="text-3xl font-bold text-blue-700 mb-6">₹450</p>
                                 <div class="mt-auto space-y-3">
                                     <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
@@ -1605,6 +1807,33 @@
                                 </div>
                             </div>
                         </div>
+                        
+                         <div class="course-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                            <img src="https://placehold.co/400x300/facc15/1f2937?text=ESI+Notebook" alt="ESI Notebook" class="w-full h-64 object-cover" loading="lazy">
+                            <div class="p-6 flex-grow flex flex-col">
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">ESI Premium Notebook</h3>
+                                <p class="text-base mb-4 flex-grow">A5 size, 200 pages, ruled. Hard cover with ESI branding. Ideal for notes and lab work.</p>
+                                <p class="text-3xl font-bold text-blue-700 mb-6">₹299</p>
+                                <div class="mt-auto space-y-3">
+                                    <button class="add-to-cart-btn w-full bg-blue-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-blue-700 text-lg" 
+                                            data-id="merch-notebook-1" 
+                                            data-name="ESI Premium Notebook" 
+                                            data-price="299"
+                                            data-image="https://placehold.co/100x100/facc15/1f2937?text=NB">
+                                        <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                                    </button>
+                                    <button class="buy-now-btn buy-now-btn-gold w-full text-white py-3 rounded-lg font-semibold transition duration-300 text-lg" 
+                                            data-id="merch-notebook-1" 
+                                            data-name="ESI Premium Notebook" 
+                                            data-price="299"
+                                            data-image="https://placehold.co/100x100/facc15/1f2937?text=NB">
+                                        Buy Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Add more merchandise items as needed -->
 
                     </div>
                 </div>
@@ -1618,7 +1847,7 @@
                 <div class="container mx-auto px-6">
                     <div class="text-center mb-16">
                         <h2 class="text-3xl md:text-4xl font-bold section-title">PhD Positions</h2>
-                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Explore curated PhD opportunities in India and around the world.</p>
+                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Explore curated PhD opportunities in Life Sciences & Biotechnology from top institutions in India and around the world.</p>
                     </div>
                     <div class="max-w-4xl mx-auto">
                         <div class="border-b border-gray-300 mb-6">
@@ -1627,37 +1856,81 @@
                                 <button class="tab-button phd-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="abroad">Abroad</button>
                             </nav>
                         </div>
-                        <div id="phd-india" class="phd-tab-content space-y-4">
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h4 class="font-bold text-lg text-slate-800">Indian Institute of Science (IISc), Bangalore</h4>
-                                    <p class="text-gray-600">Area: Molecular Biology & Genetics</p>
+                        
+                        <!-- India PhD Positions -->
+                        <div id="phd-india" class="phd-tab-content space-y-6">
+                            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                     <div>
+                                        <h4 class="font-bold text-lg text-slate-800 mb-1">Indian Institute of Science (IISc), Bangalore</h4>
+                                        <p class="text-gray-600 text-sm"><span class="font-medium">Area:</span> Molecular Biology, Genetics, Biochemistry</p>
+                                        <p class="text-gray-500 text-xs mt-1">Posted: 2 days ago | Deadline: Nov 15, 2025</p>
+                                    </div>
+                                    <a href="#" target="_blank" rel="noopener noreferrer" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap text-sm inline-block">View Details</a>
                                 </div>
-                                <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
+                                <p class="mt-3 text-gray-700 text-sm">Seeking highly motivated candidates for PhD positions in various departments within the Division of Biological Sciences. Check individual lab websites for specific projects.</p>
                             </div>
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h4 class="font-bold text-lg text-slate-800">Tata Institute of Fundamental Research (TIFR), Mumbai</h4>
-                                    <p class="text-gray-600">Area: Neuroscience & Cell Biology</p>
+                            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <h4 class="font-bold text-lg text-slate-800 mb-1">Tata Institute of Fundamental Research (TIFR), Mumbai</h4>
+                                        <p class="text-gray-600 text-sm"><span class="font-medium">Area:</span> Neuroscience, Cell Biology, Developmental Biology</p>
+                                         <p class="text-gray-500 text-xs mt-1">Posted: 5 days ago | Deadline: Dec 1, 2025</p>
+                                    </div>
+                                    <a href="#" target="_blank" rel="noopener noreferrer" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap text-sm inline-block">View Details</a>
                                 </div>
-                                <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
+                                <p class="mt-3 text-gray-700 text-sm">PhD program admissions open for the Department of Biological Sciences. Research focus includes molecular mechanisms of cellular processes and neural circuits.</p>
                             </div>
+                             <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <h4 class="font-bold text-lg text-slate-800 mb-1">National Centre for Biological Sciences (NCBS), Bangalore</h4>
+                                        <p class="text-gray-600 text-sm"><span class="font-medium">Area:</span> Ecology & Evolution, Neurobiology, Biochemistry</p>
+                                         <p class="text-gray-500 text-xs mt-1">Posted: 1 week ago | Deadline: Nov 30, 2025</p>
+                                    </div>
+                                    <a href="#" target="_blank" rel="noopener noreferrer" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap text-sm inline-block">View Details</a>
+                                </div>
+                                <p class="mt-3 text-gray-700 text-sm">Inviting applications for the PhD program. NCBS offers a vibrant research environment with state-of-the-art facilities.</p>
+                            </div>
+                             <!-- Add more India positions -->
                         </div>
-                        <div id="phd-abroad" class="phd-tab-content space-y-4 hidden">
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h4 class="font-bold text-lg text-slate-800">Harvard University, USA</h4>
-                                    <p class="text-gray-600">Area: Genetics and Genomics</p>
+                        
+                        <!-- Abroad PhD Positions -->
+                        <div id="phd-abroad" class="phd-tab-content space-y-6 hidden">
+                            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <h4 class="font-bold text-lg text-slate-800 mb-1">Harvard University, USA</h4>
+                                        <p class="text-gray-600 text-sm"><span class="font-medium">Area:</span> Biological & Biomedical Sciences (BBS)</p>
+                                        <p class="text-gray-500 text-xs mt-1">Posted: 3 days ago | Deadline: Dec 1, 2025</p>
+                                    </div>
+                                    <a href="#" target="_blank" rel="noopener noreferrer" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap text-sm inline-block">View Details</a>
                                 </div>
-                                <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
+                                <p class="mt-3 text-gray-700 text-sm">The BBS program offers diverse PhD opportunities across multiple departments including Genetics, Cell Biology, and Immunology.</p>
                             </div>
-                            <div class="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h4 class="font-bold text-lg text-slate-800">Max Planck Institute, Germany</h4>
-                                    <p class="text-gray-600">Area: Plant Biology & Epigenetics</p>
+                            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                     <div>
+                                        <h4 class="font-bold text-lg text-slate-800 mb-1">Max Planck Institute (Various Locations), Germany</h4>
+                                        <p class="text-gray-600 text-sm"><span class="font-medium">Area:</span> Plant Biology, Epigenetics, Biophysics, Neurobiology</p>
+                                        <p class="text-gray-500 text-xs mt-1">Posted: 1 week ago | Deadline: Rolling/Varies by Institute</p>
+                                    </div>
+                                    <a href="#" target="_blank" rel="noopener noreferrer" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap text-sm inline-block">View Details</a>
                                 </div>
-                                <a href="#" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap">Apply Now</a>
+                                <p class="mt-3 text-gray-700 text-sm">Multiple Max Planck Institutes offer PhD positions through the International Max Planck Research Schools (IMPRS). Check specific IMPRS deadlines and research areas.</p>
                             </div>
+                             <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                     <div>
+                                        <h4 class="font-bold text-lg text-slate-800 mb-1">ETH Zurich, Switzerland</h4>
+                                        <p class="text-gray-600 text-sm"><span class="font-medium">Area:</span> Systems Biology, Microbiology, Structural Biology</p>
+                                        <p class="text-gray-500 text-xs mt-1">Posted: 4 days ago | Deadline: Dec 15, 2025</p>
+                                    </div>
+                                    <a href="#" target="_blank" rel="noopener noreferrer" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 whitespace-nowrap text-sm inline-block">View Details</a>
+                                </div>
+                                <p class="mt-3 text-gray-700 text-sm">The Department of Biology (D-BIOL) at ETH Zurich provides excellent PhD research opportunities in a world-class environment.</p>
+                            </div>
+                             <!-- Add more Abroad positions -->
                         </div>
                     </div>
                 </div>
@@ -1666,58 +1939,112 @@
 
         <!-- PAGE: Research News -->
         <div id="page-news" class="page-content hidden">
-             <!-- Re-using the news section from Home -->
+             <!-- Re-using the news section from Home, maybe show more items -->
             <section id="news-page" class="py-20 md:py-24 bg-slate-50">
                 <div class="container mx-auto px-6">
                     <div class="text-center mb-16">
                         <h2 class="text-3xl md:text-4xl font-bold section-title">Research News</h2>
-                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Stay updated with the latest breakthroughs in the world of science.</p>
+                        <p class="section-subtitle mt-4 max-w-2xl mx-auto text-lg">Stay updated with the latest breakthroughs, discoveries, and trends in the world of life sciences and biotechnology.</p>
                     </div>
                     <div class="max-w-5xl mx-auto">
                         <div class="border-b border-gray-300 mb-8">
                             <nav class="flex space-x-8" aria-label="Tabs">
-                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent active" data-tab="daily">Daily</button>
-                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="weekly">Weekly</button>
-                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="monthly">Monthly</button>
+                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent active" data-tab="daily">Daily Highlights</button>
+                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="weekly">Weekly Digest</button>
+                                <button class="tab-button news-tab-button whitespace-nowrap pb-4 px-1 border-b-2 font-semibold text-lg text-gray-500 border-transparent" data-tab="monthly">Monthly Review</button>
                             </nav>
                         </div>
+                        
+                        <!-- Daily News -->
                         <div id="news-daily" class="news-tab-content grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/34d399/ffffff?text=CRISPR+Advancement" class="w-full h-56 object-cover" alt="News Image">
-                                <div class="p-6">
-                                    <h3 class="font-bold text-xl mb-2 text-slate-800">New CRISPR technique shows promise in gene editing</h3>
-                                    <p class="text-gray-600 mb-4">Researchers have developed a new method that increases the efficiency and accuracy of CRISPR-Cas9...</p>
-                                    <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
+                             <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                                <img src="https://placehold.co/600x400/34d399/ffffff?text=CRISPR+Update" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
+                                <div class="p-6 flex-grow flex flex-col">
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">New CRISPR Base Editor Shows Promise in Gene Editing Precision</h3>
+                                    <p class="text-gray-600 mb-4 flex-grow">Researchers have unveiled a novel base editing technique that significantly increases the accuracy of CRISPR-Cas9 modifications, minimizing off-target effects...</p>
+                                    <div class="mt-auto">
+                                         <span class="text-xs text-gray-500">Oct 25, 2025 | Nature Biotechnology</span>
+                                         <a href="#" class="block text-blue-600 font-semibold hover:underline mt-2">Read More &rarr;</a>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/f87171/ffffff?text=Cancer+Research" class="w-full h-56 object-cover" alt="News Image">
-                                <div class="p-6">
-                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Breakthrough in Early Cancer Detection</h3>
-                                    <p class="text-gray-600 mb-4">A new blood test has been shown to detect multiple types of cancer at an early stage with high accuracy...</p>
-                                    <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
+                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                                <img src="https://placehold.co/600x400/f87171/ffffff?text=Cancer+Biomarker" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
+                                <div class="p-6 flex-grow flex flex-col">
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Novel Biomarker Identified for Early Lung Cancer Detection</h3>
+                                    <p class="text-gray-600 mb-4 flex-grow">A recent study published in 'Cancer Cell' identifies a specific protein signature in blood plasma that could lead to earlier and more reliable lung cancer diagnosis...</p>
+                                     <div class="mt-auto">
+                                         <span class="text-xs text-gray-500">Oct 25, 2025 | Cancer Cell</span>
+                                         <a href="#" class="block text-blue-600 font-semibold hover:underline mt-2">Read More &rarr;</a>
+                                    </div>
                                 </div>
                             </div>
+                             <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                                <img src="https://placehold.co/600x400/60a5fa/ffffff?text=Microbiome+Link" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
+                                <div class="p-6 flex-grow flex flex-col">
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Gut Microbiome Composition Linked to Immune Response Variability</h3>
+                                    <p class="text-gray-600 mb-4 flex-grow">Scientists have found a strong correlation between the diversity of gut bacteria and the effectiveness of certain immunotherapies, suggesting personalized microbiome...</p>
+                                     <div class="mt-auto">
+                                         <span class="text-xs text-gray-500">Oct 24, 2025 | Science Immunology</span>
+                                         <a href="#" class="block text-blue-600 font-semibold hover:underline mt-2">Read More &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Add more daily news cards -->
                         </div>
+                        
+                        <!-- Weekly News -->
                         <div id="news-weekly" class="news-tab-content hidden grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/fbbf24/ffffff?text=AI+in+Drug+Discovery" class="w-full h-56 object-cover" alt="News Image">
-                                <div class="p-6">
-                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Weekly Roundup: AI Accelerates Drug Discovery</h3>
-                                    <p class="text-gray-600 mb-4">This week's major news includes a breakthrough in using AI to predict protein folding and drug interactions...</p>
-                                    <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
+                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                                <img src="https://placehold.co/600x400/fbbf24/ffffff?text=AI+Drug+Discovery" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
+                                <div class="p-6 flex-grow flex flex-col">
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Weekly Digest: AI Accelerates Drug Discovery Pipelines</h3>
+                                    <p class="text-gray-600 mb-4 flex-grow">This week saw major advancements in using AI for predicting protein structures and identifying potential drug candidates, significantly speeding up the initial phases...</p>
+                                     <div class="mt-auto">
+                                         <span class="text-xs text-gray-500">Week of Oct 20, 2025 | ESI Summary</span>
+                                         <a href="#" class="block text-blue-600 font-semibold hover:underline mt-2">Read Full Digest &rarr;</a>
+                                    </div>
                                 </div>
                             </div>
+                             <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                                <img src="https://placehold.co/600x400/c084fc/ffffff?text=Neuro+Research" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
+                                <div class="p-6 flex-grow flex flex-col">
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Neuroscience Highlights: Mapping Brain Circuits with New Tech</h3>
+                                    <p class="text-gray-600 mb-4 flex-grow">Key publications this week focused on novel imaging techniques allowing researchers to map neural connections with unprecedented resolution, shedding light on memory...</p>
+                                     <div class="mt-auto">
+                                         <span class="text-xs text-gray-500">Week of Oct 20, 2025 | ESI Summary</span>
+                                         <a href="#" class="block text-blue-600 font-semibold hover:underline mt-2">Read Full Digest &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Add more weekly news cards -->
                         </div>
+                        
+                        <!-- Monthly News -->
                         <div id="news-monthly" class="news-tab-content hidden grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden">
-                                <img src="https://placehold.co/600x400/60a5fa/ffffff?text=Climate+Change+Impact" class="w-full h-56 object-cover" alt="News Image">
-                                <div class="p-6">
-                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Monthly Digest: Impact of Climate Change on Biodiversity</h3>
-                                    <p class="text-gray-600 mb-4">A comprehensive look at research published this month on how rising temperatures affect global ecosystems...</p>
-                                    <a href="#" class="text-blue-600 font-semibold hover:underline">Read More &rarr;</a>
+                            <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                                <img src="https://placehold.co/600x400/22c55e/ffffff?text=Eco+Impact" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
+                                <div class="p-6 flex-grow flex flex-col">
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Monthly Review: Climate Change Impacts on Biodiversity Hotspots</h3>
+                                    <p class="text-gray-600 mb-4 flex-grow">September's research highlighted the accelerating effects of climate change on vulnerable ecosystems, with several studies documenting species migration shifts and habitat loss...</p>
+                                      <div class="mt-auto">
+                                         <span class="text-xs text-gray-500">September 2025 Review | ESI Analysis</span>
+                                         <a href="#" class="block text-blue-600 font-semibold hover:underline mt-2">Read Full Review &rarr;</a>
+                                    </div>
                                 </div>
                             </div>
+                             <div class="news-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                                <img src="https://placehold.co/600x400/f43f5e/ffffff?text=Vaccine+Dev" class="w-full h-56 object-cover" alt="News Image" loading="lazy">
+                                <div class="p-6 flex-grow flex flex-col">
+                                    <h3 class="font-bold text-xl mb-2 text-slate-800">Vaccine Development Trends: Focus on mRNA Platforms</h3>
+                                    <p class="text-gray-600 mb-4 flex-grow">The past month saw continued investment and research into mRNA vaccine technology beyond COVID-19, with promising pre-clinical results for flu and RSV vaccines...</p>
+                                      <div class="mt-auto">
+                                         <span class="text-xs text-gray-500">September 2025 Review | ESI Analysis</span>
+                                         <a href="#" class="block text-blue-600 font-semibold hover:underline mt-2">Read Full Review &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Add more monthly news cards -->
                         </div>
                     </div>
                 </div>
@@ -1726,21 +2053,21 @@
 
         <!-- PAGE: Cart -->
         <div id="page-cart" class="page-content hidden">
-            <section id="cart" class="py-20 md:py-24 bg-slate-50">
-                <div class="container mx-auto px-6 max-w-4xl">
-                    <h2 class="text-3xl md:text-4xl font-bold section-title mb-8">Your Shopping Cart</h2>
+            <section id="cart" class="py-20 md:py-24 bg-slate-50 min-h-screen">
+                <div class="container mx-auto px-4 sm:px-6 max-w-4xl">
+                    <h2 class="text-3xl md:text-4xl font-bold section-title mb-8 text-center md:text-left">Your Shopping Cart</h2>
                     
-                    <div id="cart-items-container" class="bg-white rounded-xl shadow-lg">
+                    <div id="cart-items-container" class="bg-white rounded-xl shadow-lg mb-8">
                         <!-- Cart items will be rendered here by renderCart() -->
-                        <p class="p-8 text-center text-gray-500">Your cart is empty.</p>
+                        <p class="p-8 text-center text-gray-500">Loading cart...</p>
                     </div>
                     
-                    <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
-                        <div class="flex justify-between items-center">
+                    <div class="bg-white rounded-xl shadow-lg p-6 sticky bottom-4 md:static md:bottom-auto border md:border-none border-gray-200">
+                        <div class="flex justify-between items-center mb-4">
                             <span class="text-xl font-medium text-gray-600">Total:</span>
                             <span id="cart-total" class="text-3xl font-bold text-slate-800">₹0.00</span>
                         </div>
-                        <button id="checkout-btn" class="mt-6 w-full bg-green-600 text-white py-4 rounded-lg font-semibold transition duration-300 hover:bg-green-700 text-lg opacity-50 cursor-not-allowed" disabled>
+                        <button id="checkout-btn" class="mt-4 w-full bg-green-600 text-white py-3 md:py-4 rounded-lg font-semibold transition duration-300 hover:bg-green-700 text-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                             Proceed to Checkout
                         </button>
                     </div>
@@ -1751,71 +2078,81 @@
 
         <!-- PAGE: Checkout -->
         <div id="page-checkout" class="page-content hidden">
-            <section id="checkout" class="py-20 md:py-24 bg-slate-50">
-                <div class="container mx-auto px-6 max-w-6xl">
-                    <h2 class="text-3xl md:text-4xl font-bold section-title mb-8">Checkout</h2>
+            <section id="checkout" class="py-20 md:py-24 bg-slate-50 min-h-screen">
+                <div class="container mx-auto px-4 sm:px-6 max-w-6xl">
+                    <h2 class="text-3xl md:text-4xl font-bold section-title mb-8 text-center md:text-left">Checkout</h2>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         
-                        <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-8">
-                            <h3 class="text-2xl font-semibold mb-6">Shipping Details</h3>
+                        <!-- Shipping Details Form -->
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6 md:p-8 order-2 lg:order-1">
+                            <h3 class="text-2xl font-semibold mb-6 border-b pb-3">Shipping & Billing Details</h3>
                             <form id="shipping-form" class="space-y-4">
                                 <div>
-                                    <label for="shipping-name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                                    <input type="text" id="shipping-name" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm" required>
+                                    <label for="shipping-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                    <input type="text" id="shipping-name" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div>
+                                        <label for="shipping-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                        <input type="email" id="shipping-email" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                    </div>
+                                    <div>
+                                        <label for="shipping-phone" class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                                        <input type="tel" id="shipping-phone" pattern="[6-9][0-9]{9}" title="Please enter a valid 10-digit Indian mobile number" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label for="shipping-email" class="block text-sm font-medium text-gray-700">Email</label>
-                                    <input type="email" id="shipping-email" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm" required>
-                                </div>
-                                <div>
-                                    <label for="shipping-phone" class="block text-sm font-medium text-gray-700">Mobile Number</label>
-                                    <input type="tel" id="shipping-phone" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm" required>
-                                </div>
-                                <div>
-                                    <label for="shipping-address" class="block text-sm font-medium text-gray-700">Address</label>
-                                    <input type="text" id="shipping-address" placeholder="Line 1" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm" required>
+                                    <label for="shipping-address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                    <input type="text" id="shipping-address" placeholder="Flat No, House No, Building, Street" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label for="shipping-city" class="block text-sm font-medium text-gray-700">City</label>
-                                        <input type="text" id="shipping-city" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm" required>
+                                        <label for="shipping-city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                        <input type="text" id="shipping-city" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
                                     </div>
                                     <div>
-                                        <label for="shipping-state" class="block text-sm font-medium text-gray-700">State</label>
-                                        <input type="text" id="shipping-state" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm" required>
+                                        <label for="shipping-state" class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                                        <input type="text" id="shipping-state" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
                                     </div>
                                     <div>
-                                        <label for="shipping-zip" class="block text-sm font-medium text-gray-700">PIN Code</label>
-                                        <input type="text" id="shipping-zip" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm" required>
+                                        <label for="shipping-zip" class="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
+                                        <input type="text" id="shipping-zip" pattern="[0-9]{6}" title="Please enter a valid 6-digit PIN code" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
                                     </div>
                                 </div>
-                                <p class="text-xs text-gray-500">Note: Shipping details are required for merchandise. For digital-only orders, this will be used for billing.</p>
+                                <p class="text-xs text-gray-500 pt-2">Note: Shipping details are required for merchandise. For digital course/test series orders, this will be used for billing.</p>
                             </form>
                         </div>
 
-                        <div class="lg:col-span-1">
-                            <div class="bg-white rounded-xl shadow-lg p-6 sticky top-28">
-                                <h3 class="text-2xl font-semibold mb-6">Order Summary</h3>
-                                <div id="summary-items-container" class="space-y-4 mb-6 max-h-64 overflow-y-auto pr-2">
-                                    <!-- Summary items will be rendered here -->
+                        <!-- Order Summary -->
+                        <div class="lg:col-span-1 order-1 lg:order-2">
+                            <div class="bg-white rounded-xl shadow-lg p-6 lg:sticky lg:top-28"> {/* Adjusted top value */}
+                                <h3 class="text-2xl font-semibold mb-6 border-b pb-3">Order Summary</h3>
+                                <div id="summary-items-container" class="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2 text-sm">
+                                    {/* Summary items will be rendered here */}
+                                     <p class="text-gray-500">Loading summary...</p>
                                 </div>
-                                <div class="border-t pt-4 space-y-2">
+                                <div class="border-t pt-4 space-y-2 text-base">
                                     <div class="flex justify-between">
-                                        <span>Subtotal</span>
-                                        <span id="summary-subtotal">₹0.00</span>
+                                        <span class="text-gray-600">Subtotal</span>
+                                        <span id="summary-subtotal" class="font-medium">₹0.00</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span>Shipping</span>
-                                        <span>Free</span>
+                                        <span class="text-gray-600">Shipping</span>
+                                        <span class="font-medium">Free</span>
                                     </div>
-                                    <div class="flex justify-between text-xl font-bold mt-4">
+                                     {/* Optional: Add taxes here if applicable */}
+                                    {/* <div class="flex justify-between">
+                                         <span class="text-gray-600">Taxes (GST)</span>
+                                         <span id="summary-taxes" class="font-medium">₹0.00</span>
+                                    </div> */}
+                                    <div class="flex justify-between text-xl font-bold mt-4 pt-2 border-t">
                                         <span>Total</span>
                                         <span id="summary-total">₹0.00</span>
                                     </div>
                                 </div>
-                                <button id="pay-now-btn" class="mt-6 w-full bg-green-600 text-white py-4 rounded-lg font-semibold transition duration-300 hover:bg-green-700 text-lg">
-                                    Pay Now
+                                <button id="pay-now-btn" class="mt-6 w-full bg-green-600 text-white py-3 rounded-lg font-semibold transition duration-300 hover:bg-green-700 text-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                     <i class="fas fa-lock mr-2"></i>Pay Now
                                 </button>
                             </div>
                         </div>
@@ -1829,96 +2166,111 @@
     <!-- Footer -->
     <footer class="bg-slate-800 text-slate-300 py-12">
         <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {/* Footer Col 1 */}
+                <div class="mb-6 md:mb-0">
                     <h4 class="text-lg font-bold mb-4 text-white">Elite Science Institute</h4>
-                    <p class="text-slate-400">Your trusted partner in life science education and career advancement.</p>
+                    <p class="text-slate-400 text-sm">Your trusted partner in life science education and career advancement since 2005.</p>
                 </div>
+                 {/* Footer Col 2 */}
                 <div>
                     <h4 class="text-lg font-bold mb-4 text-white">Quick Links</h4>
-                    <ul class="space-y-2">
-                        <li><a href="#" onclick="showPage('page-home')" class="hover:text-amber-500 transition-colors">About Us</a></li>
-                        <li><a href="#" onclick="showPage('page-courses')" class="hover:text-amber-500 transition-colors">Courses</a></li>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" onclick="showPage('page-home'); return false;" class="hover:text-amber-500 transition-colors">About Us</a></li>
+                        <li><a href="#" onclick="showPage('page-courses'); return false;" class="hover:text-amber-500 transition-colors">All Courses</a></li>
+                         <li><a href="#" onclick="showPage('page-test-series'); return false;" class="hover:text-amber-500 transition-colors">Test Series</a></li>
                         <li><a href="#" class="hover:text-amber-500 transition-colors">Admissions</a></li>
                         <li><a href="#" class="hover:text-amber-500 transition-colors">Privacy Policy</a></li>
+                         <li><a href="#" class="hover:text-amber-500 transition-colors">Terms of Service</a></li>
                     </ul>
                 </div>
+                 {/* Footer Col 3 */}
                 <div>
                     <h4 class="text-lg font-bold mb-4 text-white">Contact Us</h4>
-                    <ul class="space-y-2 text-slate-400">
-                        <li class="flex items-start"><i class="fas fa-map-marker-alt mr-3 mt-1"></i><span>New Delhi, India</span></li>
-                        <li class="flex items-start"><i class="fas fa-envelope mr-3 mt-1"></i><a href="mailto:info@elitescience.com" class="hover:text-amber-500 transition-colors">info@elitescience.com</a></li>
-                        <li class="flex items-start"><i class="fas fa-phone-alt mr-3 mt-1"></i><a href="tel:+919876543210" class="hover:text-amber-500 transition-colors">+91 98765 43210</a></li>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li class="flex items-start"><i class="fas fa-map-marker-alt mr-3 mt-1 flex-shrink-0"></i><span>123 Science Lane, Education City, New Delhi, 1100XX, India</span></li>
+                        <li class="flex items-start"><i class="fas fa-envelope mr-3 mt-1 flex-shrink-0"></i><a href="mailto:info@elitescience.com" class="hover:text-amber-500 transition-colors break-all">info@elitescience.com</a></li>
+                        <li class="flex items-start"><i class="fas fa-phone-alt mr-3 mt-1 flex-shrink-0"></i><a href="tel:+919876543210" class="hover:text-amber-500 transition-colors">+91 98765 43210</a></li>
                     </ul>
                 </div>
+                 {/* Footer Col 4 */}
                 <div>
                     <h4 class="text-lg font-bold mb-4 text-white">Follow Us</h4>
                     <div class="flex space-x-4">
-                        <a href="#" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-facebook"></i></a>
-                        <a href="#" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-linkedin"></i></a>
+                        <a href="#" aria-label="Facebook" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-facebook"></i></a>
+                        <a href="#" aria-label="Twitter" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-twitter"></i></a>
+                        <a href="#" aria-label="Instagram" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-instagram"></i></a>
+                        <a href="#" aria-label="LinkedIn" class="text-2xl text-slate-400 hover:text-amber-500 transition-colors"><i class="fab fa-linkedin"></i></a>
                     </div>
+                     <h4 class="text-lg font-bold mt-6 mb-4 text-white">Newsletter</h4>
+                     <form class="flex">
+                          <input type="email" placeholder="Your email" class="px-3 py-2 rounded-l-md text-sm text-gray-800 focus:outline-none flex-grow" required>
+                          <button type="submit" class="bg-amber-500 text-white px-4 py-2 rounded-r-md text-sm font-semibold hover:bg-amber-600 transition-colors">Subscribe</button>
+                     </form>
                 </div>
             </div>
-            <div class="text-center text-slate-500 border-t border-slate-700 mt-8 pt-6">
-                &copy; 2024 Elite Science Institute. All Rights Reserved.
+            <div class="text-center text-sm text-slate-500 border-t border-slate-700 mt-8 pt-6">
+                &copy; <span id="current-year">2024</span> Elite Science Institute. All Rights Reserved.
+                 <script>document.getElementById('current-year').textContent = new Date().getFullYear();</script>
             </div>
         </div>
     </footer>
 
+
     <!-- Login/Sign Up Modal -->
-    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 modal-backdrop opacity-0 pointer-events-none">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 modal-content transform scale-95">
-            <div class="flex justify-between items-center mb-6">
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-[60] modal-backdrop opacity-0 pointer-events-none" aria-labelledby="auth-title" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 md:p-8 modal-content transform scale-95">
+            <div class="flex justify-between items-start mb-6">
                 <h2 id="auth-title" class="text-2xl font-bold text-slate-800">Login</h2>
-                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-700 text-3xl leading-none -mt-2 -mr-2" aria-label="Close modal">&times;</button>
             </div>
             
-            <div class="space-y-4">
+            <form onsubmit="return false;" class="space-y-4"> {/* Prevent default form submission */}
                  <div id="full-name-container" class="hidden">
-                    <label for="auth-full-name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="auth-full-name" placeholder="John Doe" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <label for="auth-full-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" id="auth-full-name" placeholder="John Doe" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
                  <div>
-                    <label for="auth-email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                    <input type="email" id="auth-email" placeholder="you@example.com" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <label for="auth-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="auth-email" placeholder="you@example.com" required class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
                  <div id="mobile-container" class="hidden">
-                    <label for="auth-mobile" class="block text-sm font-medium text-gray-700">Mobile Number</label>
-                    <input type="tel" id="auth-mobile" placeholder="9876543210" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <label for="auth-mobile" class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                    <input type="tel" id="auth-mobile" pattern="[6-9][0-9]{9}" title="Enter a valid 10-digit Indian mobile number" placeholder="9876543210" class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
                  <div id="password-container-div">
-                    <label for="auth-password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <label for="auth-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" required class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div id="forgot-password-container" class="text-right text-sm">
-                    <button id="forgot-password-link" class="font-medium text-blue-600 hover:text-blue-500">Forgot Password?</button>
+                    <button type="button" id="forgot-password-link" class="font-medium text-blue-600 hover:text-blue-500">Forgot Password?</button>
                 </div>
 
-                <button id="auth-action-btn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 flex items-center justify-center text-base">
-                    <span id="auth-action-text">Login</span>
-                    <i id="auth-spinner" class="fas fa-spinner fa-spin hidden"></i>
+                <button id="auth-action-btn" type="button" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 flex items-center justify-center text-base relative h-12 disabled:opacity-70 disabled:cursor-not-allowed">
+                    <span id="auth-action-text" class="transition-opacity duration-200">Login</span>
+                    <i id="auth-spinner" class="fas fa-spinner fa-spin absolute hidden"></i>
                 </button>
-            </div>
+            </form>
             
             <p id="auth-toggle-text" class="text-center text-sm text-gray-600 mt-6">
-                Don't have an account? <button id="auth-toggle-link" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>
+                Don't have an account? <button id="auth-toggle-link" type="button" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>
             </p>
             <p id="back-to-login-container" class="text-center text-sm text-gray-600 mt-6 hidden">
-                <button id="back-to-login-link" class="font-medium text-blue-600 hover:text-blue-500">&larr; Back to Login</button>
+                <button id="back-to-login-link" type="button" class="font-medium text-blue-600 hover:text-blue-500">&larr; Back to Login</button>
             </p>
 
-            <div id="auth-message" class="mt-4 text-center text-sm"></div>
+            <div id="auth-message" class="mt-4 text-center text-sm hidden min-h-[1.25rem]"></div> {/* Added min-height */}
 
         </div>
     </div>
     
     <!-- Toast Notification -->
-    <div id="toast-notification" class="toast-notification fixed bottom-5 right-5 bg-green-600 text-white py-3 px-6 rounded-lg shadow-lg transform translate-y-24 opacity-0 pointer-events-none z-[100]">
+    <div id="toast-notification" class="toast-notification fixed bottom-5 right-5 w-auto max-w-sm text-white py-3 px-6 rounded-lg shadow-lg opacity-0 pointer-events-none z-[100]" role="alert">
+         {/* Use translate-y-full to start off-screen */}
         <p id="toast-message"></p>
     </div>
 
 </body>
 </html>
+
